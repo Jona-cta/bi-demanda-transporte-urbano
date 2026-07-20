@@ -503,37 +503,39 @@ Este resultado es más informativo de lo que aparenta. Una diferencia distinta d
 
 ## 7.1. Criterios de diseño y modelo semántico
 
-El dashboard se construyó en Power BI Desktop aplicando los principios expuestos en la sección 2.6. La información se organiza bajo una **jerarquía visual explícita** de tres niveles de lectura: las tarjetas de indicadores en la banda superior, legibles en menos de dos segundos; los gráficos de composición y ranking, que responden a la pregunta de estructura; y el detalle tabular, disponible para quien necesita la cifra exacta. Por **economía visual** se eliminaron efectos tridimensionales, sombras, degradados y todo elemento decorativo carente de función informativa. El **color cumple función semántica** y no ornamental: la paleta se limita a un color de acento para las medidas de demanda, uno secundario para las de ingreso y una escala neutra para los elementos contextuales. El **formato es consistente**, con importes en moneda peruana y dos decimales, conteos con separador de miles y porcentajes con dos decimales. Y la **reactividad es total**: toda selección aplicada sobre cualquier visual o segmentador se propaga a la totalidad de la página.
+El dashboard se construyó en Power BI Desktop aplicando los principios expuestos en la sección 2.6. La información se organiza bajo una **jerarquía visual explícita** de dos niveles de lectura: las tarjetas de indicadores en la banda superior, legibles en menos de dos segundos y suficientes para responder la pregunta de magnitud; y los gráficos de composición, ranking y distribución, que responden la pregunta de estructura para quien necesita ir más allá del agregado. Por **economía visual** se eliminaron efectos tridimensionales, sombras, degradados y todo elemento decorativo carente de función informativa. El **color cumple función semántica** y no ornamental: la paleta se limita a un color de acento para las medidas de demanda, uno secundario para las de ingreso y una escala neutra para los elementos contextuales. El **formato es consistente**, con importes en moneda peruana y dos decimales, conteos con separador de miles y porcentajes con dos decimales. Y la **reactividad es total**: toda selección aplicada sobre cualquier visual o segmentador se propaga a la totalidad de la página.
 
-Antes de la construcción visual se configuró el modelo semántico. Se establecieron relaciones de uno a muchos desde cada dimensión hacia las tablas de hechos, con **dirección de filtro simple**; la dirección simple es deliberada, puesto que la propagación bidireccional introduce ambigüedad en modelos con múltiples tablas de hechos y puede generar resultados inesperados. Se marcó `dim_tiempo` como tabla de fechas del modelo, requisito para el funcionamiento de las funciones de inteligencia de tiempo, y se declararon la jerarquía temporal Año, Trimestre, Mes, Semana y Día junto a una jerarquía geográfica Zona y Paradero. Todas las medidas DAX se agruparon en una tabla dedicada denominada `_Medidas`, práctica que separa el vocabulario de negocio de las estructuras de datos y facilita el mantenimiento, y las columnas de clave subrogada se ocultaron de la vista de informe por tratarse de artefactos técnicos sin significado para el usuario. La definición completa de las medidas figura en el **Anexo B**.
+Antes de la construcción visual se configuró el modelo semántico. Se establecieron relaciones de uno a muchos desde cada dimensión hacia las tablas de hechos, con **dirección de filtro simple**; la dirección simple es deliberada, puesto que la propagación bidireccional introduce ambigüedad en modelos con múltiples tablas de hechos y puede generar resultados inesperados. Se marcó `dim_tiempo` como tabla de fechas del modelo, requisito para el funcionamiento de las funciones de inteligencia de tiempo, y se declaró la jerarquía temporal Año, Trimestre, Mes y Día, que habilita la navegación por niveles sobre el eje de tiempo. Todas las medidas DAX se agruparon en una tabla dedicada denominada `_Medidas`, práctica que separa el vocabulario de negocio de las estructuras de datos y facilita el mantenimiento, y las columnas de clave subrogada se ocultaron de la vista de informe por tratarse de artefactos técnicos sin significado para el usuario. La definición completa de las medidas figura en el **Anexo B**.
 
 `[FIGURA 6: Captura de la vista de modelo de Power BI, mostrando las dos tablas de hechos, las seis dimensiones y las relaciones establecidas]`
 
 ## 7.2. Composición del dashboard
 
-El informe se organiza en tres páginas. La **primera** ofrece la visión general de la demanda: cuatro tarjetas con los indicadores globales, el perfil de validaciones por franja horaria, la distribución por tipo de pasaje, el ranking de rutas por ingreso y los segmentadores de ruta, período y tipo de pasaje. La **segunda** profundiza en la dimensión geográfica y de servicio, con una matriz de ruta por franja horaria, el ranking de paraderos, la distribución por zona, la comparación de sentido y una tabla de detalle por ruta. La **tercera** aborda el análisis temporal bajo las precauciones establecidas en la sección 6.6. La especificación visual por visual, con el tipo de gráfico elegido y la justificación de esa elección, se presenta en el **Anexo I**.
+El informe se organiza en **dos páginas**, cada una asociada a un tipo de pregunta de negocio. La composición responde a un criterio deliberado de economía: se prefirió un conjunto reducido de visualizaciones bien elegidas y legibles antes que una acumulación de gráficos que compitieran por la atención del usuario.
 
-La matriz de ruta por franja horaria merece comentario aparte por ser la visualización de mayor densidad informativa del dashboard: en una sola vista expone el comportamiento de veintidós rutas a lo largo de veinticuatro franjas, empleando la intensidad de color como codificación de la magnitud. Permite identificar de inmediato qué rutas presentan un perfil de demanda concentrado en las puntas y cuáles mantienen demanda sostenida durante el día, distinción que tiene consecuencia directa sobre la programación de frecuencias.
+La **primera página, Visión general de la demanda**, responde a la pregunta de cuánto y de qué composición. Contiene cuatro tarjetas con los indicadores globales del corte seleccionado (total de validaciones, ingreso total, número de carreras y promedio de pasajeros por viaje), un gráfico de barras horizontales con el ranking de rutas por ingreso y un gráfico de anillo con la distribución por tipo de pasaje. El ranking se dispuso en barras horizontales por dos razones: el ordenamiento descendente convierte la comparación en una lectura inmediata, y la orientación horizontal acomoda las etiquetas de ruta sin rotarlas. El anillo se reservó para la distribución por tipo de pasaje por tratarse de una partición de cuatro categorías sobre un total, único caso en que la codificación angular resulta apropiada.
 
-En la página temporal, tres decisiones responden directamente al hallazgo de cobertura. La serie diaria se construyó sobre el calendario continuo de `dim_tiempo` conforme a lo argumentado en la sección 6.6.5, de modo que los períodos sin cobertura aparecen como vacíos. El gráfico de días con registro por mes acompaña permanentemente a los visuales temporales para que ningún usuario interprete una caída de totales sin conocer la cobertura subyacente. Y el gráfico de validaciones promedio por día con registro es el único autorizado para la comparación entre meses, condición que lleva rotulada.
+La **segunda página, Demanda por hora y paradero**, responde a la pregunta de cuándo y dónde. Contiene un gráfico de columnas con la demanda por franja horaria y un gráfico de barras con los diez paraderos de mayor demanda. La elección de columnas verticales para la distribución horaria no es arbitraria: el eje horizontal representa el transcurso del día, y esa correspondencia entre la dimensión espacial del gráfico y la dimensión temporal del dato hace que el perfil de doble pico se reconozca sin necesidad de leer los valores.
 
-`[FIGURA 7: Captura de la página 1 del dashboard, visión general de la demanda, con los cuatro indicadores en tarjetas y los gráficos de franja horaria, tipo de pasaje y ranking de rutas]`
+Ambas páginas incorporan segmentadores de **ruta** y de **período**, de modo que cualquier corte puede examinarse indistintamente desde la perspectiva de composición o desde la perspectiva temporal y geográfica. La especificación visual por visual, con el tipo de gráfico elegido y la justificación de esa elección, se presenta en el **Anexo I**.
 
-`[FIGURA 8: Captura de la página 2 del dashboard, análisis por ruta y paradero, destacando la matriz de calor de ruta por franja horaria]`
+Sobre el tratamiento del hallazgo de cobertura documentado en la sección 6.6, el dashboard aplica una decisión explícita: **no incorpora ninguna visualización de evolución mensual de totales**. La razón es la expuesta en 6.6.5, a saber, que una serie de totales por mes sobre una fuente de cobertura irregular induce a leer como caída de demanda lo que es ausencia de registro. Antes que acompañar ese gráfico de advertencias que el usuario podría pasar por alto, se optó por no ofrecerlo. La comparación entre períodos se realiza mediante el segmentador de período aplicado sobre indicadores de composición, que sí son robustos frente a la cobertura desigual.
 
-`[FIGURA 9: Captura de la página 3 del dashboard, análisis temporal, mostrando la serie diaria sobre calendario continuo con los vacíos de cobertura visibles y el gráfico auxiliar de días con registro por mes]`
+`[FIGURA 7: Captura de la página 1 del dashboard, visión general de la demanda, con las cuatro tarjetas de indicadores, el ranking de rutas por ingreso y la distribución por tipo de pasaje]`
+
+`[FIGURA 8: Captura de la página 2 del dashboard, demanda por hora y paradero, con los segmentadores, el perfil horario y el ranking de paraderos]`
 
 ## 7.3. Interactividad: las operaciones OLAP en la práctica
 
-Las operaciones analíticas descritas en el Anexo E se materializan en el dashboard mediante interacciones concretas: la jerarquía temporal habilita *roll-up* y *drill-down*, el segmentador de ruta implementa el *slice*, la combinación de segmentadores el *dice*, y el intercambio de campos en la matriz el *pivot*. La correspondencia completa entre cada operación y su interacción, con ejemplos de uso, se presenta en el **Anexo I**.
+Las operaciones analíticas descritas en el Anexo E se materializan en el dashboard mediante interacciones concretas: el segmentador de ruta implementa el *slice*, la combinación de los segmentadores de ruta y período el *dice*, la jerarquía temporal de `dim_tiempo` habilita el *roll-up* y el *drill-down* sobre el eje de tiempo, y el cambio entre las dos páginas ofrece dos proyecciones distintas del mismo cubo. La correspondencia completa entre cada operación y su interacción, con ejemplos de uso, se presenta en el **Anexo I**.
 
-El filtrado cruzado merece destacarse por ser la funcionalidad que transforma un conjunto de gráficos en un instrumento analítico. Al seleccionar una ruta en el ranking de ingresos, la totalidad de la página se recalcula para ese subconjunto, permitiendo al usuario formular y responder preguntas encadenadas sin escribir una sola línea de código.
+El filtrado cruzado merece destacarse por ser la funcionalidad que transforma un conjunto de gráficos en un instrumento analítico. Al seleccionar una ruta en el ranking de ingresos, la totalidad de la página se recalcula para ese subconjunto, permitiendo al usuario formular y responder preguntas encadenadas sin escribir una sola línea de código. Esta reactividad es además el mecanismo que permite verificar la coherencia entre el dashboard y el módulo de inteligencia artificial descrito en la sección 8: aplicando el mismo corte de ruta y período en ambos, los indicadores coinciden exactamente, lo que evidencia que el modelo de lenguaje interpreta cifras calculadas por el Data Mart y no las produce por su cuenta.
 
 ## 7.4. Publicación en Power BI Service
 
 El informe se publicó en Power BI Service, lo que aporta acceso desde navegador sin instalación de software cliente, control de acceso por usuario y disponibilidad desde dispositivos móviles. Se documenta una consideración de arquitectura pertinente: dado que el Data Mart reside en una instancia local, la actualización programada desde el servicio requeriría la instalación de una puerta de enlace de datos sobre el equipo anfitrión. En el alcance del proyecto el modelo se publica en modo de importación con los datos incorporados, solución adecuada para la demostración y para el volumen manejado.
 
-`[FIGURA 10: Captura del informe publicado en Power BI Service, visualizado desde navegador web]`
+`[FIGURA 9: Captura del informe publicado en Power BI Service, visualizado desde navegador web]`
 
 ---
 ---
@@ -546,9 +548,9 @@ Un dashboard bien construido comunica con eficiencia **qué ocurrió**, pero tra
 
 El módulo es una aplicación web desarrollada en PHP. El usuario accede desde un navegador, selecciona una **ruta** de interés o la totalidad del sistema y un **período** de análisis, y ejecuta la generación. El módulo consulta entonces el extracto del Data Mart y calcula los indicadores del corte solicitado, compone con ellos un contexto cuantitativo estructurado, lo remite al servicio de inteligencia artificial junto con las instrucciones de análisis, recibe la respuesta y la presenta en pantalla acompañada de la tabla de indicadores que la sustenta.
 
-`[FIGURA 11: Captura de la interfaz del módulo de IA, mostrando los controles de selección de ruta y período]`
+`[FIGURA 10: Captura de la interfaz del módulo de IA, mostrando los controles de selección de ruta y período]`
 
-`[FIGURA 12: Captura del análisis generado por el modelo, mostrando el texto interpretativo junto a la tabla de indicadores del corte que le sirvió de contexto]`
+`[FIGURA 11: Captura del análisis generado por el modelo, mostrando el texto interpretativo junto a la tabla de indicadores del corte que le sirvió de contexto]`
 
 La integración se realiza contra la **API de Google Gemini** con el modelo `gemini-2.0-flash`, autenticación por API Key, protocolo HTTPS con método POST, intercambio en JSON y cliente cURL de PHP. La selección del modelo respondió a tres criterios: **latencia**, dado que la demostración en vivo exige respuesta en pocos segundos; **disponibilidad de una capa gratuita**, compatible con el contexto académico del proyecto; y **suficiencia de capacidad** para la tarea encomendada, que consiste en interpretar un conjunto acotado de indicadores y no en razonamiento complejo de múltiples pasos.
 
@@ -560,7 +562,7 @@ La justificación de esta restricción es directa. La limitación más documenta
 
 El contexto remitido al modelo se estructura en tres bloques. El **contexto de dominio** ofrece una descripción sintética del negocio: operador de transporte público urbano, naturaleza de una validación como abordaje, significado de una carrera y estructura tarifaria vigente; sin este bloque el modelo carecería del marco para interpretar las cifras. Los **indicadores del corte** comprenden el total de validaciones, el ingreso, el número de carreras, el promedio de pasajeros por viaje, el ticket promedio, la distribución por tipo de pasaje y por franja horaria, y la participación en el ingreso total del sistema. Las **instrucciones de análisis** especifican la tarea solicitada, que comprende la interpretación de la magnitud de la demanda, la identificación de patrones relevantes y la formulación de recomendaciones operativas concretas sobre frecuencias y asignación de flota, e incorporan restricciones explícitas: no introducir cifras ausentes del contexto, no formular afirmaciones sobre estacionalidad ni sobre comportamiento de fin de semana dadas las delimitaciones de cobertura documentadas en la sección 6.6, y mantener un registro ejecutivo destinado a personal operativo.
 
-`[FIGURA 13: Diagrama de secuencia de la integración, mostrando el flujo desde la selección del usuario hasta la presentación del análisis, con la separación explícita entre el cálculo determinista en el motor de base de datos y la generación de lenguaje en el servicio de IA]`
+`[FIGURA 12: Diagrama de secuencia de la integración, mostrando el flujo desde la selección del usuario hasta la presentación del análisis, con la separación explícita entre el cálculo determinista en el motor de base de datos y la generación de lenguaje en el servicio de IA]`
 
 El módulo contempla además el tratamiento de las condiciones de fallo previsibles: ausencia o invalidez de la credencial, agotamiento de la cuota de uso, tiempo de espera excedido y respuesta con estructura inesperada. En todos los casos se presenta al usuario un mensaje comprensible y **se conserva la presentación de la tabla de indicadores**, de modo que la indisponibilidad del servicio externo degrada la funcionalidad pero no la anula.
 
@@ -584,7 +586,7 @@ La solución implementada aplica el patrón de **intermediación en el servidor*
 
 Se destaca el papel del archivo `.env.example`, cuya función consiste en documentar **qué** variables requiere la aplicación sin revelar **cuánto** valen. Quien clona el proyecto conoce de inmediato la configuración necesaria y provee sus propios valores. Es la resolución estándar de la tensión entre la necesidad de documentar la configuración y la de proteger los secretos.
 
-`[FIGURA 14: Captura del archivo .env.example versionado, mostrando la declaración de la variable de la credencial sin su valor, junto al archivo .gitignore que excluye el .env real]`
+`[FIGURA 13: Captura del archivo .env.example versionado, mostrando la declaración de la variable de la credencial sin su valor, junto al archivo .gitignore que excluye el .env real]`
 
 ## 8.4. Portabilidad y valor agregado
 
@@ -629,7 +631,7 @@ Los resultados corresponden al período comprendido entre febrero de 2025 y febr
 | Rutas activas | 22 |
 | Paraderos con actividad | 170 |
 
-`[FIGURA 15: Captura de la banda de tarjetas de indicadores del dashboard, mostrando los valores globales del período]`
+`[FIGURA 14: Captura de la banda de tarjetas de indicadores del dashboard, mostrando los valores globales del período]`
 
 La lectura de conjunto describe una operación de escala relevante: aproximadamente sesenta mil abordajes y mil seiscientas carreras por cada día laborable de operación registrado, con una recaudación diaria del orden de los ciento veintitrés mil soles.
 
@@ -647,7 +649,7 @@ El indicador de **36.84 pasajeros por viaje** admite una lectura operativa direc
 | Sin dato | 65,712 | 0.56% | 0.00 | 0.00% | Indeterminado |
 | **Total** | **11,737,931** | **100.00%** | **23,706,412.98** | **100.00%** | **2.02** |
 
-`[FIGURA 16: Captura del gráfico de distribución por tipo de pasaje del dashboard]`
+`[FIGURA 15: Captura del gráfico de distribución por tipo de pasaje del dashboard]`
 
 Cuatro de cada cinco abordajes corresponden a pasaje de tarifa completa. Este segmento sostiene el 91.04% del ingreso del sistema, participación superior a su peso en la demanda, lo que resulta aritméticamente esperable dado que es el único segmento que aporta la tarifa íntegra. El segmento de **medio pasaje** representa el 16.22% de los abordajes pero solo el 8.96% del ingreso, asimetría que cuantifica el efecto de la tarifa preferencial. El segmento **gratuito** alcanza el 3.23% de los abordajes y aporta ingreso nulo: constituye una magnitud modesta pero no despreciable, equivalente a 378,710 abordajes transportados sin contraprestación durante el período, cuya cuantificación resulta relevante para el dimensionamiento del subsidio implícito asumido por el operador.
 
@@ -673,7 +675,7 @@ La conclusión de gestión es que **S/ 2.45 no constituye una referencia válida
 
 El **45.67%** de la demanda se produce en las franjas declaradas punta, esto es, entre las 6h y las 8h y entre las 17h y las 19h, correspondiendo el **54.33%** restante al resto del día.
 
-`[FIGURA 17: Captura del gráfico de validaciones por franja horaria del dashboard, mostrando el perfil de doble pico característico]`
+`[FIGURA 16: Captura del gráfico de validaciones por franja horaria del dashboard, mostrando el perfil de doble pico característico]`
 
 El perfil de demanda presenta la estructura de **doble pico** característica de los sistemas de transporte urbano orientados al desplazamiento laboral y educativo: una concentración matinal entre las 6h y las 8h, con máximo a las 7h, y una concentración vespertina entre las 17h y las 19h. Este perfil es plenamente coherente con el alcance laborable del estudio establecido en la sección 6.6.2. La magnitud de la concentración es el dato relevante: **el 45.67% de la demanda del sistema se produce en seis de las aproximadamente dieciocho horas de operación efectiva**, es decir, en torno a un tercio del tiempo de operación se absorbe cerca de la mitad de la demanda.
 
@@ -696,7 +698,7 @@ Esta concentración tiene consecuencias directas sobre el dimensionamiento del s
 | 9 a 22 | Resto (14 rutas) | 209,379.16 | 0.89% | 100.00% | - |
 | | **Total** | **23,706,412.98** | **100.00%** | | **11,737,931** |
 
-`[FIGURA 18: Captura del gráfico de ranking de rutas por ingreso del dashboard, con las barras ordenadas descendentemente]`
+`[FIGURA 17: Captura del gráfico de ranking de rutas por ingreso del dashboard, con las barras ordenadas descendentemente]`
 
 ### 9.5.1. El hallazgo central: concentración extrema del ingreso
 
@@ -720,9 +722,9 @@ La concentración identificada configura una exposición al riesgo que debe expl
 
 ## 9.6. Cobertura temporal y comparación normalizada
 
-Conforme a lo establecido en las secciones 6.6 y 9.1, la comparación entre meses se realiza exclusivamente sobre el indicador normalizado de validaciones promedio por día con registro, cuyos valores por mes figuran en la Tabla 9.
+Conforme a lo establecido en las secciones 6.6 y 9.1, la comparación entre meses se realiza exclusivamente sobre el indicador normalizado de validaciones promedio por día con registro, cuyos valores por mes figuran en la Tabla 9. La cobertura efectiva que sustenta esa normalización se representa en la Figura 4, donde la irregularidad del registro resulta evidente: dos meses con menos de cinco días de datos y uno enteramente ausente.
 
-`[FIGURA 19: Captura del gráfico de validaciones promedio por día con registro del dashboard, acompañado del gráfico auxiliar de días con registro por mes]`
+Esta comparación se deja fuera del dashboard de forma deliberada, según se argumentó en la sección 7.2. El indicador normalizado exige que quien lo lea conozca la razón por la que existe; entregado como un gráfico más entre otros, invita a interpretaciones que la fuente no sustenta. En su lugar, el análisis normalizado se documenta aquí, donde puede acompañarse de la advertencia metodológica que le da sentido, y el módulo de inteligencia artificial de la sección 8 lo incorpora en su contexto para que sus interpretaciones queden sujetas a la misma restricción.
 
 La lectura de esos valores exige prudencia y se formula con reservas explícitas. Febrero de 2025 presenta el mayor valor normalizado, con 108,827 validaciones por día con registro, superior en un 79% al de abril de 2025, que con 45,837 presenta el menor. Sin embargo, **no es posible atribuir esta diferencia a variación de la demanda con la información disponible**, por al menos tres razones. **Primera:** los meses con muy pocos días de registro, como marzo de 2025 con un solo día y junio de 2025 con cuatro, producen promedios de altísima varianza, pues un único día registrado puede corresponder a un día de alta demanda o a uno atípico. **Segunda:** se desconoce el criterio de selección de los días registrados, de modo que si los reportes disponibles privilegiaron determinados días de la semana, el promedio quedaría sesgado por la composición de la muestra y no por la demanda subyacente. **Tercera:** no es posible separar el efecto de la variación de demanda del efecto de la variación de oferta, ya que un mes puede presentar menor demanda promedio por menor afluencia de pasajeros o por menor número de carreras operadas.
 
@@ -1242,9 +1244,9 @@ Crecimiento Ingreso MoM % =
 
 `[ANEXO C: insertar aquí el código fuente completo del módulo PHP de integración con la API de Google Gemini. Debe comprender: (1) el archivo de configuración que lee la credencial desde la variable de entorno; (2) la clase o funciones de acceso al extracto SQLite que calculan los indicadores del corte seleccionado; (3) la función de composición del contexto cuantitativo remitido al modelo; (4) la función de invocación de la API mediante cURL, con el manejo de errores descrito en la sección 8.4.3; (5) la vista que presenta el análisis junto a la tabla de indicadores. IMPORTANTE: verificar antes de insertar que ninguna credencial real figure en el código incluido en el informe.]`
 
-`[FIGURA 20: Captura del archivo de configuración del módulo, mostrando la lectura de la credencial desde la variable de entorno]`
+`[FIGURA 18: Captura del archivo de configuración del módulo, mostrando la lectura de la credencial desde la variable de entorno]`
 
-`[FIGURA 21: Captura de la ejecución en vivo del módulo, con el análisis generado por el modelo para un corte de ruta y período determinado]`
+`[FIGURA 19: Captura de la ejecución en vivo del módulo, con el análisis generado por el modelo para un corte de ruta y período determinado]`
 
 ---
 
