@@ -1,10 +1,4 @@
 <?php
-/**
- * Cliente de la API de Google Gemini.
- *
- * Todas las llamadas salen del servidor: la API Key nunca llega al navegador.
- */
-
 declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';

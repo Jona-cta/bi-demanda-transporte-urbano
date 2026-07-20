@@ -1,11 +1,4 @@
 <?php
-/**
- * Autenticacion del modulo.
- *
- * La contrasena no se almacena: se guarda su hash bcrypt en el .env y se
- * verifica con password_verify.
- */
-
 declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';

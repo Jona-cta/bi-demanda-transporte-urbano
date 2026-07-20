@@ -1,14 +1,4 @@
 <?php
-/**
- * Modulo de Analisis Inteligente - Proyecto Final Inteligencia de Negocios (UTP)
- *
- * Muestra los KPIs del corte elegido y permite pedir un analisis ejecutivo o
- * una consulta en lenguaje natural.
- *
- * Los KPIs se calculan en el servidor: el modelo interpreta cifras ya
- * calculadas, no las produce.
- */
-
 declare(strict_types=1);
 
 require_once __DIR__ . '/lib/kpis.php';

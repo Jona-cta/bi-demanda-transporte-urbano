@@ -1,11 +1,4 @@
 <?php
-/**
- * Acceso al extracto del Data Mart (SQLite).
- *
- * Todas las consultas usan sentencias preparadas: los filtros llegan por HTTP
- * y no se concatenan al SQL.
- */
-
 declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';

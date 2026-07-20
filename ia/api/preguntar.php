@@ -1,10 +1,4 @@
 <?php
-/**
- * Endpoint de la consulta en lenguaje natural.
- *
- * Devuelve la respuesta redactada y, cuando hubo consulta, el SQL ejecutado.
- */
-
 declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');

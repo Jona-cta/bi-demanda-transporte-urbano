@@ -1,10 +1,4 @@
 <?php
-/**
- * Configuracion del modulo.
- *
- * Las credenciales se leen de un archivo .env que no se versiona.
- */
-
 declare(strict_types=1);
 
 /** Lector minimo de .env (CLAVE=valor, # para comentarios). */

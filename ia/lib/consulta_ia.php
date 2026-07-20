@@ -1,12 +1,4 @@
 <?php
-/**
- * Consulta en lenguaje natural sobre el Data Mart (texto a SQL).
- *
- * El modelo traduce la pregunta a SQL, la consulta se valida, se ejecuta en
- * modo de solo lectura y el resultado vuelve al modelo para que redacte la
- * respuesta.
- */
-
 declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';

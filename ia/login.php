@@ -1,8 +1,4 @@
 <?php
-/**
- * Pantalla de acceso al modulo de Analisis Inteligente de Demanda.
- */
-
 declare(strict_types=1);
 
 require_once __DIR__ . '/lib/auth.php';

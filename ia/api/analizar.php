@@ -1,11 +1,4 @@
 <?php
-/**
- * Endpoint del analisis ejecutivo.
- *
- * Consulta el extracto, arma el contexto cuantitativo y lo entrega a Gemini.
- * Devuelve siempre JSON, tambien en los errores.
- */
-
 declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
