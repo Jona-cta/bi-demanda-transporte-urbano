@@ -186,6 +186,38 @@ function h(?string $s): string
     <div id="resultado" class="resultado" hidden></div>
   </section>
 
+  <!-- ------------------------------------------------------------------ -->
+  <!-- Consulta en lenguaje natural (texto a SQL)                          -->
+  <!-- ------------------------------------------------------------------ -->
+  <section class="panel">
+    <h2>Pregunta a los datos</h2>
+    <p class="ayuda">
+      Escribe una pregunta en lenguaje corriente. El modelo la traduce a una
+      consulta sobre el Data Mart, se ejecuta en modo de solo lectura y la
+      respuesta se redacta con las cifras obtenidas. La consulta ejecutada se
+      muestra junto a la respuesta, para poder verificar de donde sale cada dato.
+    </p>
+
+    <form class="pregunta-form" id="form-pregunta">
+      <input type="text" id="pregunta" name="pregunta" maxlength="400"
+             placeholder="Ejemplo: cual es el paradero con mas demanda en la ruta R-01"
+             autocomplete="off">
+      <button type="submit" class="btn btn-primario" id="btn-preguntar">
+        Preguntar
+      </button>
+    </form>
+
+    <div class="sugerencias">
+      <span>Prueba con:</span>
+      <button type="button" class="chip">Cuales son las 5 rutas con mayor ingreso</button>
+      <button type="button" class="chip">En que hora se concentra mas la demanda</button>
+      <button type="button" class="chip">Cuanto representa el pasaje gratuito</button>
+      <button type="button" class="chip">Que paraderos tienen mas demanda en la Zona Norte</button>
+    </div>
+
+    <div id="respuesta" class="resultado" hidden></div>
+  </section>
+
   <p class="nota-etica">
     Conjunto de datos anonimizado: los codigos de ruta, paradero y zona fueron
     sustituidos por identificadores genericos y las medidas de volumen fueron
@@ -285,6 +317,90 @@ function h(?string $s): string
       // Se re-habilita para poder pedir otro corte sin recargar la pagina.
       boton.disabled = false;
       boton.textContent = textoOriginal;
+    }
+  });
+
+  // ---------------------------------------------------------------------
+  // Consulta en lenguaje natural
+  // ---------------------------------------------------------------------
+  const formP = document.getElementById('form-pregunta');
+  const campoP = document.getElementById('pregunta');
+  const btnP = document.getElementById('btn-preguntar');
+  const cajaR = document.getElementById('respuesta');
+
+  // Los ejemplos rellenan el campo y lanzan la consulta directamente.
+  document.querySelectorAll('.chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+      campoP.value = chip.textContent.trim();
+      formP.requestSubmit();
+    });
+  });
+
+  function tablaHtml(filas) {
+    if (!filas || !filas.length) return '';
+    const cols = Object.keys(filas[0]);
+    let h = '<div class="tabla-scroll"><table class="tabla tabla-mini"><thead><tr>';
+    cols.forEach(c => h += '<th>' + c + '</th>');
+    h += '</tr></thead><tbody>';
+    filas.forEach(function (f) {
+      h += '<tr>';
+      cols.forEach(c => h += '<td>' + (f[c] === null ? '' : f[c]) + '</td>');
+      h += '</tr>';
+    });
+    return h + '</tbody></table></div>';
+  }
+
+  formP.addEventListener('submit', async function (ev) {
+    ev.preventDefault();
+    const pregunta = campoP.value.trim();
+    if (!pregunta) return;
+
+    // Mismo candado que en el analisis: dos llamadas al modelo por pregunta,
+    // un doble clic gastaria cuota por partida doble.
+    btnP.disabled = true;
+    const textoBtn = btnP.textContent;
+    btnP.textContent = 'Consultando...';
+
+    cajaR.hidden = false;
+    cajaR.className = 'resultado cargando';
+    let seg = 0;
+    cajaR.innerHTML = '<p>Interpretando la pregunta... <strong>0 s</strong></p>';
+    const reloj = setInterval(function () {
+      seg++;
+      cajaR.innerHTML = '<p>Interpretando la pregunta... <strong>' + seg + ' s</strong></p>';
+    }, 1000);
+
+    const datos = new FormData();
+    datos.append('pregunta', pregunta);
+
+    try {
+      const r = await fetch('api/preguntar.php', { method: 'POST', body: datos });
+      const j = await r.json();
+
+      if (j.ok) {
+        cajaR.className = 'resultado';
+        cajaR.innerHTML =
+          '<p class="pregunta-eco">' + pregunta.replace(/</g, '&lt;') + '</p>' +
+          render(j.respuesta) +
+          '<details class="detalle-sql"><summary>Ver la consulta ejecutada (' +
+          j.n_filas + ' fila' + (j.n_filas === 1 ? '' : 's') + ')</summary>' +
+          '<pre>' + j.sql.replace(/</g, '&lt;') + '</pre>' +
+          tablaHtml(j.filas) + '</details>' +
+          '<p class="firma">Generado con ' + j.modelo + '</p>';
+        campoP.value = '';
+      } else {
+        cajaR.className = 'resultado resultado-error';
+        cajaR.innerHTML = '<p><strong>No se pudo responder.</strong></p><p>' +
+          j.error.replace(/</g, '&lt;') + '</p>';
+      }
+    } catch (e) {
+      cajaR.className = 'resultado resultado-error';
+      cajaR.innerHTML = '<p><strong>Error de conexion.</strong></p><p>' +
+        String(e).replace(/</g, '&lt;') + '</p>';
+    } finally {
+      clearInterval(reloj);
+      btnP.disabled = false;
+      btnP.textContent = textoBtn;
     }
   });
 })();

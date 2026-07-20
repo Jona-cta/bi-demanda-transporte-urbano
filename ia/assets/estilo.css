@@ -219,6 +219,80 @@ main { padding: 26px 20px 40px; }
   font-style: italic;
 }
 
+/* --- Consulta en lenguaje natural --- */
+.pregunta-form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.pregunta-form input {
+  flex: 1 1 340px;
+  padding: 11px 14px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  font-size: .95rem;
+  color: var(--texto);
+  font-family: inherit;
+}
+.pregunta-form input:focus {
+  outline: 2px solid var(--navy-claro);
+  outline-offset: 1px;
+}
+
+.sugerencias {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: .82rem;
+  color: var(--texto-suave);
+}
+.chip {
+  background: #eef2ff;
+  border: 1px solid #dbe3fb;
+  color: var(--navy-oscuro);
+  border-radius: 999px;
+  padding: 5px 13px;
+  font-size: .8rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+.chip:hover { background: #e0e8ff; }
+
+.pregunta-eco {
+  font-weight: 600;
+  color: var(--navy-oscuro);
+  border-left: 3px solid var(--navy-claro);
+  padding-left: 10px;
+  margin-bottom: 14px !important;
+}
+
+.detalle-sql {
+  margin-top: 14px;
+  border-top: 1px solid var(--borde);
+  padding-top: 10px;
+}
+.detalle-sql summary {
+  cursor: pointer;
+  font-size: .84rem;
+  color: var(--texto-suave);
+}
+.detalle-sql pre {
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 12px 14px;
+  border-radius: 7px;
+  font-size: .8rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 10px 0;
+}
+.tabla-scroll { overflow-x: auto; }
+.tabla-mini { font-size: .82rem; }
+.tabla-mini th, .tabla-mini td { padding: 5px 9px; }
+
 /* --- Avisos --- */
 .aviso {
   padding: 14px 16px;
