@@ -91,7 +91,7 @@ En el plano **operativo**, ajustar frecuencias según la distribución real de l
 
 **OE1.** Consolidar el histórico completo de validaciones del período febrero 2025 a febrero 2026 en un Data Mart implementado en MariaDB bajo modelo dimensional de constelación, mediante un proceso ETL desarrollado en Python, verificando la integridad de la carga por conciliación de totales contra el origen con diferencia cero.
 
-**OE2.** Construir un dashboard interactivo en Power BI que exponga como mínimo cuatro indicadores clave de desempeño (total de validaciones, ingreso por ruta, promedio de pasajeros por viaje y distribución por tipo de pasaje), con filtros por ruta y período y jerarquía temporal navegable.
+**OE2.** Construir un dashboard interactivo en Power BI que exponga como mínimo cuatro indicadores clave de desempeño (total de validaciones, ingreso por ruta, promedio de pasajeros por viaje y distribución por tipo de pasaje), con filtros por ruta y por período aplicables a la totalidad de los visuales.
 
 **OE3.** Integrar la API de Google Gemini en un módulo web desarrollado en PHP, que genere de forma automática un análisis ejecutivo en lenguaje natural a partir de los indicadores del corte seleccionado, gestionando la credencial bajo prácticas seguras de manejo de secretos.
 
@@ -213,7 +213,7 @@ Los indicadores KPI 1 a KPI 4 corresponden a los requeridos por la guía del cur
 
 ## 3.5. Requerimientos funcionales y no funcionales
 
-Se formalizaron nueve requerimientos funcionales y ocho no funcionales, cada uno con su criterio de aceptación. Los funcionales cubren la consolidación del histórico completo, su verificabilidad por conciliación contra el origen, el análisis por las seis dimensiones del modelo, la exposición de los seis indicadores con filtros y jerarquía temporal navegable, la generación del análisis en lenguaje natural y la portabilidad de la demostración. Los no funcionales establecen exigencias de rendimiento del proceso de carga y de las consultas, integridad referencial declarada, reproducibilidad del entorno, seguridad de las credenciales, privacidad del conjunto de datos, portabilidad y trazabilidad de las transformaciones. El catálogo completo, con la redacción íntegra de cada requerimiento y su criterio de aceptación, se presenta en el **Anexo F**.
+Se formalizaron nueve requerimientos funcionales y ocho no funcionales, cada uno con su criterio de aceptación. Los funcionales cubren la consolidación del histórico completo, su verificabilidad por conciliación contra el origen, el análisis por las seis dimensiones del modelo, la exposición de los seis indicadores con filtros por ruta y por período, la generación del análisis en lenguaje natural y la portabilidad de la demostración. Los no funcionales establecen exigencias de rendimiento del proceso de carga y de las consultas, integridad referencial declarada, reproducibilidad del entorno, seguridad de las credenciales, privacidad del conjunto de datos, portabilidad y trazabilidad de las transformaciones. El catálogo completo, con la redacción íntegra de cada requerimiento y su criterio de aceptación, se presenta en el **Anexo F**.
 
 ## 3.6. Análisis y calidad de la fuente de datos
 
@@ -319,7 +319,7 @@ Se documenta una precisión metodológica. La suma de `num_pasajeros` sobre `fac
 
 La composición de atributos de cada dimensión, con tipos, claves e índices, figura en el diccionario de datos del **Anexo A**. Tres decisiones de diseño merecen desarrollo aquí.
 
-**El calendario de `dim_tiempo` es continuo y deliberadamente más extenso que los datos.** Es la única dimensión que se construye por generación y no por extracción, y cubre los 391 días del rango del período aunque solo 193 presenten hechos asociados, según se documenta en la sección 6.6. La continuidad es necesaria porque una dimensión temporal con días faltantes rompería las funciones de inteligencia de tiempo de DAX y produciría ejes temporales visualmente engañosos; conservar los 391 días hace que la ausencia resulte visible en lugar de quedar disimulada. La dimensión declara la jerarquía **Año > Trimestre > Mes > Semana > Día**, que habilita las operaciones de *roll-up* y *drill-down*, e incorpora atributos como `anio_mes` y `es_fin_semana` que constituyen desnormalización deliberada: podrían derivarse por cálculo, pero se materializan como columnas para que el usuario final los emplee directamente sin escribir expresiones.
+**El calendario de `dim_tiempo` es continuo y deliberadamente más extenso que los datos.** Es la única dimensión que se construye por generación y no por extracción, y cubre los 391 días del rango del período aunque solo 193 presenten hechos asociados, según se documenta en la sección 6.6. La continuidad es necesaria porque una dimensión temporal con días faltantes rompería las funciones de inteligencia de tiempo de DAX y produciría ejes temporales visualmente engañosos; conservar los 391 días hace que la ausencia resulte visible en lugar de quedar disimulada. La dimensión provee los atributos de la jerarquía **Año > Trimestre > Mes > Semana > Día**, sobre los que pueden construirse operaciones de *roll-up* y *drill-down*, e incorpora atributos como `anio_mes` y `es_fin_semana` que constituyen desnormalización deliberada: podrían derivarse por cálculo, pero se materializan como columnas para que el usuario final los emplee directamente sin escribir expresiones.
 
 **`dim_sentido` normaliza sin destruir información.** El origen codifica el sentido de circulación mediante seis valores distintos, NS, SN, IDA, VUELTA, EO y OE, que expresan en realidad dos conceptos con nomenclaturas heredadas de distintos momentos o corredores. La dimensión normaliza los seis códigos a Ida y Vuelta **conservando simultáneamente el código de origen** en el atributo `codigo_origen`. Esta doble representación es una buena práctica de trazabilidad: el usuario analiza con el vocabulario normalizado y el analista técnico puede verificar en todo momento de qué codificación original proviene cada fila.
 
@@ -527,7 +527,9 @@ Sobre el tratamiento del hallazgo de cobertura documentado en la sección 6.6, e
 
 ## 7.3. Interactividad: las operaciones OLAP en la práctica
 
-Las operaciones analíticas descritas en el Anexo E se materializan en el dashboard mediante interacciones concretas: el segmentador de ruta implementa el *slice*, la combinación de los segmentadores de ruta y período el *dice*, la jerarquía temporal de `dim_tiempo` habilita el *roll-up* y el *drill-down* sobre el eje de tiempo, y el cambio entre las dos páginas ofrece dos proyecciones distintas del mismo cubo. La correspondencia completa entre cada operación y su interacción, con ejemplos de uso, se presenta en el **Anexo I**.
+Las operaciones analíticas descritas en el Anexo E se materializan en el dashboard mediante interacciones concretas: el segmentador de ruta implementa el *slice*; la combinación de los segmentadores de ruta y período, el *dice*; el segmentador de período aplicado sobre los indicadores agregados produce el efecto de *roll-up* y *drill-down* entre el total del histórico y el detalle mensual; y el cambio entre las dos páginas ofrece dos proyecciones distintas del mismo cubo.
+
+Debe precisarse el alcance de la navegación temporal, por coherencia con lo argumentado en la sección 7.2. El dashboard no incorpora una jerarquía de tiempo navegable por niveles sobre el eje de un visual, porque para ello haría falta un visual con la serie temporal en el eje, y esa visualización se excluyó deliberadamente por el problema de cobertura. La navegación temporal disponible es la que ofrece el segmentador de período: agregado del histórico completo o corte mensual. El detalle diario existe en `dim_tiempo` y es accesible desde el modelo, pero no se expone en el informe visual por la misma razón. La correspondencia completa entre cada operación y su interacción, con ejemplos de uso, se presenta en el **Anexo I**.
 
 El filtrado cruzado merece destacarse por ser la funcionalidad que transforma un conjunto de gráficos en un instrumento analítico. Al seleccionar una ruta en el ranking de ingresos, la totalidad de la página se recalcula para ese subconjunto, permitiendo al usuario formular y responder preguntas encadenadas sin escribir una sola línea de código. Esta reactividad es además el mecanismo que permite verificar la coherencia entre el dashboard y el módulo de inteligencia artificial descrito en la sección 8: aplicando el mismo corte de ruta y período en ambos, los indicadores coinciden exactamente, lo que evidencia que el modelo de lenguaje interpreta cifras calculadas por el Data Mart y no las produce por su cuenta.
 
@@ -1526,8 +1528,8 @@ Detalle de respaldo de las secciones 7.2 y 7.3.
 
 | Operación OLAP | Interacción disponible | Ejemplo de uso |
 |---|---|---|
-| *Roll-up* | Botón de ascenso en la jerarquía temporal | Pasar de la demanda diaria a la demanda trimestral |
-| *Drill-down* | Botón de descenso o clic sobre un elemento de la jerarquía | Pasar de un mes a sus días, y de un día a sus franjas horarias |
+| *Roll-up* | Retirar la selección del segmentador de período | Pasar del detalle mensual al agregado del histórico completo |
+| *Drill-down* | Seleccionar un mes en el segmentador de período, o una ruta en el ranking | Pasar del agregado del histórico a un mes concreto, o del total de rutas a una sola |
 | *Slice* | Segmentador de ruta | Analizar exclusivamente la ruta R-01 |
 | *Dice* | Combinación de segmentadores | Rutas R-01 y R-05, en tipo de pasaje Adulto, durante el tercer trimestre |
 | *Pivot* | Intercambio de campos en filas y columnas de la matriz | Observar franjas por ruta en lugar de rutas por franja |
