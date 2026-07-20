@@ -1,0 +1,45 @@
+# ============================================================================
+#  Lo que NUNCA debe subirse al repositorio
+# ============================================================================
+
+# --- Credenciales ---
+# La API Key es personal. Solo se versiona .env.example, sin clave.
+.env
+*.key
+
+# --- Datos de origen sin anonimizar ---
+# El repositorio publica UNICAMENTE el extracto anonimizado (data/*.sqlite).
+# Los volcados del sistema origen contienen informacion real del operador y
+# no se distribuyen bajo ninguna circunstancia.
+*.sql.gz
+*.sql.zip
+db/dumps/
+dumps/
+
+# --- Entorno de desarrollo ---
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# --- Sistema operativo / editor ---
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/
+
+# --- Temporales de Power BI ---
+*.pbix.tmp
+~$*
+
+# --- Borradores de trabajo ---
+informe/INFORME_largo_respaldo.md
+
+# --- Llave de la anonimizacion ---
+# El script real contiene la correspondencia entre los identificadores
+# originales del operador y los genericos publicados, y el factor de
+# perturbacion. Publicarlo permitiria REVERTIR la anonimizacion.
+# En el repositorio se publica 02_anonimizacion_metodo.sql, que documenta la
+# tecnica sin los valores que la harian reversible.
+db/02_anonimizar_datamart.sql

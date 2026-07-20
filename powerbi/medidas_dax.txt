@@ -1,0 +1,103 @@
+/* ==========================================================================
+   MEDIDAS DAX — Dashboard Validaciones (transporte_dm)
+   Crea una tabla "_Medidas" y define cada una de estas medidas.
+   Los 4 KPIs obligatorios están marcados con  ★
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   KPI 1 ★  Total de validaciones
+   -------------------------------------------------------------------------- */
+Total Validaciones = SUM ( fact_validacion_diaria[cant_validaciones] )
+
+/* --------------------------------------------------------------------------
+   KPI 2 ★  Ingresos (por ruta / período según contexto de filtro)
+   -------------------------------------------------------------------------- */
+Ingreso Total = SUM ( fact_validacion_diaria[monto_total] )
+
+Ingreso Total (fmt) =
+    "S/ " & FORMAT ( [Ingreso Total], "#,0.00" )
+
+/* --------------------------------------------------------------------------
+   KPI 3 ★  Promedio de pasajeros por viaje (usa el hecho fact_carrera)
+   -------------------------------------------------------------------------- */
+Num Carreras = COUNTROWS ( fact_carrera )
+
+Pasajeros en Carreras = SUM ( fact_carrera[num_pasajeros] )
+
+Promedio Pasajeros por Viaje =
+    DIVIDE ( [Pasajeros en Carreras], [Num Carreras] )
+
+/* --------------------------------------------------------------------------
+   KPI 4 ★  Distribución por tipo de pasaje
+   (poner dim_tipo_pasaje[tipo] en el eje + esta medida de %)
+   -------------------------------------------------------------------------- */
+% Validaciones por Tipo =
+    DIVIDE (
+        [Total Validaciones],
+        CALCULATE ( [Total Validaciones], ALL ( dim_tipo_pasaje ) )
+    )
+
+/* --------------------------------------------------------------------------
+   Medidas de apoyo
+   -------------------------------------------------------------------------- */
+Ticket Promedio =
+    DIVIDE ( [Ingreso Total], [Total Validaciones] )        // ingreso medio por validación
+
+Validaciones por Día =
+    DIVIDE ( [Total Validaciones], DISTINCTCOUNT ( dim_tiempo[id_tiempo] ) )
+
+Ingreso por Carrera =
+    DIVIDE ( SUM ( fact_carrera[monto_total] ), [Num Carreras] )
+
+% Ingreso por Ruta =
+    DIVIDE (
+        [Ingreso Total],
+        CALCULATE ( [Ingreso Total], ALL ( dim_ruta ) )
+    )
+
+/* --------------------------------------------------------------------------
+   Inteligencia de tiempo  (requiere dim_tiempo marcada como tabla de fechas)
+   -------------------------------------------------------------------------- */
+Validaciones YTD =
+    TOTALYTD ( [Total Validaciones], dim_tiempo[fecha] )
+
+Validaciones Mes Anterior =
+    CALCULATE ( [Total Validaciones], DATEADD ( dim_tiempo[fecha], -1, MONTH ) )
+
+Crecimiento Validaciones MoM % =
+    VAR actual = [Total Validaciones]
+    VAR previo = [Validaciones Mes Anterior]
+    RETURN DIVIDE ( actual - previo, previo )
+
+Ingreso Mes Anterior =
+    CALCULATE ( [Ingreso Total], DATEADD ( dim_tiempo[fecha], -1, MONTH ) )
+
+Crecimiento Ingreso MoM % =
+    DIVIDE ( [Ingreso Total] - [Ingreso Mes Anterior], [Ingreso Mes Anterior] )
+
+/* --------------------------------------------------------------------------
+   Segmentos de demanda (para insights del informe)
+   -------------------------------------------------------------------------- */
+Validaciones Fin de Semana =
+    CALCULATE ( [Total Validaciones], dim_tiempo[es_fin_semana] = 1 )
+
+Validaciones Día Laboral =
+    CALCULATE ( [Total Validaciones], dim_tiempo[es_fin_semana] = 0 )
+
+Validaciones en Hora Punta =
+    CALCULATE ( [Total Validaciones], dim_franja_horaria[es_hora_punta] = 1 )
+
+% Validaciones en Hora Punta =
+    DIVIDE (
+        [Validaciones en Hora Punta],
+        CALCULATE ( [Total Validaciones], ALL ( dim_franja_horaria ) )
+    )
+
+Ruta Top por Ingreso =
+    CALCULATE (
+        FIRSTNONBLANK (
+            TOPN ( 1, VALUES ( dim_ruta[codigo_ruta] ), [Ingreso Total], DESC ),
+            1
+        ),
+        ALLSELECTED ( dim_ruta )
+    )

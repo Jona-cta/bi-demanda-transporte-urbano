@@ -1,0 +1,354 @@
+/* ===========================================================================
+   Modulo de Analisis Inteligente - hoja de estilos
+   Paleta alineada al azul institucional #1e3a8a usado en el dashboard.
+   =========================================================================== */
+
+:root {
+  --navy:        #1e3a8a;
+  --navy-oscuro: #172554;
+  --navy-claro:  #3b5bc4;
+  --texto:       #1f2937;
+  --texto-suave: #6b7280;
+  --borde:       #e5e7eb;
+  --fondo:       #f4f6fb;
+  --blanco:      #ffffff;
+  --error:       #b91c1c;
+  --error-fondo: #fef2f2;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Calibri, Arial, sans-serif;
+  background: var(--fondo);
+  color: var(--texto);
+  line-height: 1.55;
+}
+
+.contenedor {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* --- Barra superior --- */
+.barra {
+  background: var(--navy);
+  color: var(--blanco);
+  padding: 18px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .12);
+}
+.barra-interna {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.barra h1 { margin: 0; font-size: 1.35rem; font-weight: 600; }
+.subtitulo { margin: 2px 0 0; font-size: .875rem; opacity: .85; }
+.etiqueta-ia {
+  background: rgba(255, 255, 255, .15);
+  border: 1px solid rgba(255, 255, 255, .3);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: .8rem;
+  white-space: nowrap;
+}
+
+main { padding: 26px 20px 40px; }
+
+/* --- Paneles --- */
+.panel {
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.panel h2 {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  color: var(--navy-oscuro);
+}
+.ayuda {
+  margin: 0 0 16px;
+  color: var(--texto-suave);
+  font-size: .9rem;
+}
+
+/* --- Filtros --- */
+.filtros {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.campo { display: flex; flex-direction: column; gap: 5px; }
+.campo label {
+  font-size: .78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--texto-suave);
+}
+.campo select {
+  min-width: 210px;
+  padding: 9px 11px;
+  border: 1px solid var(--borde);
+  border-radius: 7px;
+  font-size: .95rem;
+  background: var(--blanco);
+  color: var(--texto);
+}
+.campo select:focus {
+  outline: 2px solid var(--navy-claro);
+  outline-offset: 1px;
+}
+
+/* --- Botones (azul del encabezado, no el azul por defecto) --- */
+.btn {
+  border: 0;
+  border-radius: 7px;
+  padding: 10px 20px;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+.btn-primario { background: var(--navy); color: var(--blanco); }
+.btn-primario:hover:not(:disabled) { background: var(--navy-oscuro); }
+.btn-secundario {
+  background: var(--blanco);
+  color: var(--navy);
+  border: 1px solid var(--navy);
+}
+.btn-secundario:hover { background: #eef2ff; }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+
+/* --- Tarjetas KPI --- */
+.tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.tarjeta {
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-left: 4px solid var(--navy);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.tarjeta-titulo {
+  font-size: .78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--texto-suave);
+}
+.tarjeta-valor {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--navy-oscuro);
+  line-height: 1.2;
+}
+.tarjeta-pie { font-size: .82rem; color: var(--texto-suave); }
+
+/* --- Tabla --- */
+.tabla { width: 100%; border-collapse: collapse; font-size: .93rem; }
+.tabla th {
+  text-align: left;
+  padding: 9px 10px;
+  border-bottom: 2px solid var(--borde);
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--texto-suave);
+}
+.tabla td { padding: 9px 10px; border-bottom: 1px solid var(--borde); }
+.tabla tr:last-child td { border-bottom: 0; }
+.tabla .num { text-align: right; }
+.tabla th.num { text-align: right; }
+
+.barra-pct {
+  display: inline-block;
+  vertical-align: middle;
+  width: 90px;
+  height: 7px;
+  background: var(--borde);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-right: 8px;
+}
+.barra-pct span { display: block; height: 100%; background: var(--navy); }
+
+/* --- Resultado de la IA --- */
+.resultado {
+  margin-top: 18px;
+  padding: 18px 20px;
+  background: #f8faff;
+  border: 1px solid var(--borde);
+  border-left: 4px solid var(--navy);
+  border-radius: 8px;
+}
+.resultado h3 {
+  margin: 18px 0 6px;
+  font-size: .97rem;
+  color: var(--navy-oscuro);
+}
+.resultado h3:first-child { margin-top: 0; }
+.resultado p { margin: 0 0 10px; }
+.resultado ul { margin: 0 0 12px; padding-left: 20px; }
+.resultado li { margin-bottom: 6px; }
+.resultado.cargando { color: var(--texto-suave); font-style: italic; }
+.tenue { font-size: .85rem; opacity: .8; }
+.resultado-error {
+  background: var(--error-fondo);
+  border-left-color: var(--error);
+  color: var(--error);
+}
+.firma {
+  margin-top: 14px !important;
+  font-size: .8rem;
+  color: var(--texto-suave);
+  font-style: italic;
+}
+
+/* --- Avisos --- */
+.aviso {
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin-bottom: 18px;
+}
+.aviso-error {
+  background: var(--error-fondo);
+  border-left: 4px solid var(--error);
+  color: var(--error);
+}
+
+.nota-etica {
+  font-size: .82rem;
+  color: var(--texto-suave);
+  border-top: 1px solid var(--borde);
+  padding-top: 14px;
+  margin-top: 4px;
+}
+
+/* --- Sesion en la barra superior --- */
+.barra-derecha {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.sesion {
+  font-size: .85rem;
+  color: rgba(255, 255, 255, .9);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.salir {
+  color: var(--blanco);
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, .35);
+  border-radius: 6px;
+  padding: 3px 11px;
+  font-size: .8rem;
+}
+.salir:hover { background: rgba(255, 255, 255, .15); }
+
+/* --- Pantalla de acceso --- */
+.pantalla-acceso {
+  background: linear-gradient(160deg, var(--navy) 0%, var(--navy-oscuro) 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.acceso { width: 100%; max-width: 420px; }
+.acceso-marca { text-align: center; margin-bottom: 22px; }
+.acceso-marca h1 {
+  color: var(--blanco);
+  font-size: 1.35rem;
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+.acceso-marca p {
+  color: rgba(255, 255, 255, .75);
+  font-size: .9rem;
+  margin: 0;
+}
+.acceso-caja {
+  background: var(--blanco);
+  border-radius: 12px;
+  padding: 28px 26px 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .22);
+}
+.acceso-caja h2 {
+  margin: 0 0 18px;
+  font-size: 1.05rem;
+  color: var(--navy-oscuro);
+}
+.acceso-caja .campo { margin-bottom: 15px; }
+.acceso-caja input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 7px;
+  font-size: .95rem;
+  color: var(--texto);
+}
+.acceso-caja input:focus {
+  outline: 2px solid var(--navy-claro);
+  outline-offset: 1px;
+}
+.btn-ancho { width: 100%; margin-top: 4px; }
+.credenciales-demo {
+  margin-top: 18px;
+  padding: 12px 14px;
+  background: #f8faff;
+  border: 1px dashed var(--borde);
+  border-radius: 8px;
+  font-size: .82rem;
+  color: var(--texto-suave);
+  line-height: 1.7;
+}
+.credenciales-demo strong {
+  display: block;
+  color: var(--navy-oscuro);
+  margin-bottom: 3px;
+}
+.credenciales-demo code {
+  background: #eef2ff;
+  color: var(--navy-oscuro);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: .85rem;
+}
+.acceso-pie {
+  text-align: center;
+  color: rgba(255, 255, 255, .6);
+  font-size: .78rem;
+  margin-top: 18px;
+}
+
+/* --- Pie --- */
+.pie {
+  background: var(--navy-oscuro);
+  color: rgba(255, 255, 255, .8);
+  font-size: .84rem;
+  padding: 14px 0;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .filtros { flex-direction: column; align-items: stretch; }
+  .campo select { min-width: 0; width: 100%; }
+}

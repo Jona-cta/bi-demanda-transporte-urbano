@@ -1,0 +1,12 @@
+# El bundle de certificados y los ejecutables de PHP no deben sufrir conversion
+# de fin de linea al clonar: git los alteraria y openssl podria rechazarlos.
+*.pem   binary
+*.exe   binary
+*.dll   binary
+*.sqlite binary
+*.pbix  binary
+*.pptx  binary
+*.docx  binary
+
+# El lanzador es un .bat de Windows: necesita CRLF si o si.
+*.bat   text eol=crlf
