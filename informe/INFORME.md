@@ -604,7 +604,13 @@ La validación merece detenimiento porque define la diferencia entre una funcion
 
 Dos decisiones de diseño complementan el planteamiento. La interfaz **muestra la consulta SQL ejecutada** junto a la respuesta, de modo que el usuario puede verificar el origen de cada cifra en lugar de confiar en la palabra del modelo; se transforma así una caja negra en un procedimiento auditable. Y cuando la pregunta no puede responderse con los datos disponibles, por ejemplo si se interroga por el número de conductores, dato deliberadamente excluido del Data Mart por minimización, el módulo lo declara explícitamente en lugar de improvisar una respuesta.
 
-`[FIGURA 20: Captura del módulo respondiendo una pregunta en lenguaje natural, mostrando la respuesta redactada y la consulta SQL ejecutada]`
+El módulo distingue además un **segundo tipo de pregunta**. No toda consulta de la gerencia pide una cifra: hay preguntas que piden un criterio, del tipo qué convendría hacer para mejorar los ingresos. Ninguna consulta SQL devuelve una recomendación, de modo que traducir esas preguntas a SQL carece de sentido. El módulo las identifica y las encamina por una vía distinta: en lugar de generar una consulta, construye el contexto cuantitativo completo del corte activo, el mismo que alimenta el análisis ejecutivo, y exige al modelo que **cada afirmación de la respuesta se apoye en una cifra concreta**. La recomendación queda así anclada a los datos y no a la plausibilidad del lenguaje.
+
+La distinción entre ambos modos la realiza el propio modelo en la primera llamada, y la interfaz la hace visible: cuando la respuesta es de tipo consultivo se indica que no se ejecutó consulta alguna y sobre qué corte se elaboró. Esta transparencia sobre el procedimiento seguido es coherente con el criterio general del módulo, que consiste en no pedir al usuario que confíe en aquello que puede mostrársele.
+
+La Figura 14 ilustra el modo consultivo. Conviene detenerse en dos rasgos de esa respuesta. El primero es que la recomendación de auditar las rutas R-12 y R-13 no procede de una intuición sino de un contraste cuantitativo: el ticket promedio de esas rutas, S/ 1.01 y S/ 0.92 respectivamente, se aparta del promedio general de S/ 2.02, y el modelo cuantifica además en S/ 132,738.24 el ingreso no percibido asociado a las validaciones sin clasificar. El segundo, y más relevante desde el punto de vista metodológico, es que el propio módulo **declara qué no puede concluir**: reconoce que los datos disponibles no permiten discriminar entre una alta proporción legítima de medio pasaje y una deficiencia en la recaudación, y especifica qué información adicional resolvería la ambigüedad. Esa declaración no fue solicitada en la pregunta; se produce porque el contexto entregado al modelo incluye las limitaciones de cobertura documentadas en la sección 6.6.
+
+`[FIGURA 14: Captura del módulo respondiendo una pregunta de tipo consultivo, con las recomendaciones sustentadas en cifras del corte y la declaración explícita de las limitaciones del dato]`
 
 ## 8.6. Limitaciones reconocidas del componente de IA
 
@@ -643,7 +649,7 @@ Los resultados corresponden al período comprendido entre febrero de 2025 y febr
 | Rutas activas | 22 |
 | Paraderos con actividad | 170 |
 
-`[FIGURA 14: Captura de la banda de tarjetas de indicadores del dashboard, mostrando los valores globales del período]`
+`[FIGURA 15: Captura de la banda de tarjetas de indicadores del dashboard, mostrando los valores globales del período]`
 
 La lectura de conjunto describe una operación de escala relevante: aproximadamente sesenta mil abordajes y mil seiscientas carreras por cada día laborable de operación registrado, con una recaudación diaria del orden de los ciento veintitrés mil soles.
 
@@ -661,7 +667,7 @@ El indicador de **36.84 pasajeros por viaje** admite una lectura operativa direc
 | Sin dato | 65,712 | 0.56% | 0.00 | 0.00% | Indeterminado |
 | **Total** | **11,737,931** | **100.00%** | **23,706,412.98** | **100.00%** | **2.02** |
 
-`[FIGURA 15: Captura del gráfico de distribución por tipo de pasaje del dashboard]`
+`[FIGURA 16: Captura del gráfico de distribución por tipo de pasaje del dashboard]`
 
 Cuatro de cada cinco abordajes corresponden a pasaje de tarifa completa. Este segmento sostiene el 91.04% del ingreso del sistema, participación superior a su peso en la demanda, lo que resulta aritméticamente esperable dado que es el único segmento que aporta la tarifa íntegra. El segmento de **medio pasaje** representa el 16.22% de los abordajes pero solo el 8.96% del ingreso, asimetría que cuantifica el efecto de la tarifa preferencial. El segmento **gratuito** alcanza el 3.23% de los abordajes y aporta ingreso nulo: constituye una magnitud modesta pero no despreciable, equivalente a 378,710 abordajes transportados sin contraprestación durante el período, cuya cuantificación resulta relevante para el dimensionamiento del subsidio implícito asumido por el operador.
 
@@ -687,7 +693,7 @@ La conclusión de gestión es que **S/ 2.45 no constituye una referencia válida
 
 El **45.67%** de la demanda se produce en las franjas declaradas punta, esto es, entre las 6h y las 8h y entre las 17h y las 19h, correspondiendo el **54.33%** restante al resto del día.
 
-`[FIGURA 16: Captura del gráfico de validaciones por franja horaria del dashboard, mostrando el perfil de doble pico característico]`
+`[FIGURA 17: Captura del gráfico de validaciones por franja horaria del dashboard, mostrando el perfil de doble pico característico]`
 
 El perfil de demanda presenta la estructura de **doble pico** característica de los sistemas de transporte urbano orientados al desplazamiento laboral y educativo: una concentración matinal entre las 6h y las 8h, con máximo a las 7h, y una concentración vespertina entre las 17h y las 19h. Este perfil es plenamente coherente con el alcance laborable del estudio establecido en la sección 6.6.2. La magnitud de la concentración es el dato relevante: **el 45.67% de la demanda del sistema se produce en seis de las aproximadamente dieciocho horas de operación efectiva**, es decir, en torno a un tercio del tiempo de operación se absorbe cerca de la mitad de la demanda.
 
@@ -710,7 +716,7 @@ Esta concentración tiene consecuencias directas sobre el dimensionamiento del s
 | 9 a 22 | Resto (14 rutas) | 209,379.16 | 0.89% | 100.00% | - |
 | | **Total** | **23,706,412.98** | **100.00%** | | **11,737,931** |
 
-`[FIGURA 17: Captura del gráfico de ranking de rutas por ingreso del dashboard, con las barras ordenadas descendentemente]`
+`[FIGURA 18: Captura del gráfico de ranking de rutas por ingreso del dashboard, con las barras ordenadas descendentemente]`
 
 ### 9.5.1. El hallazgo central: concentración extrema del ingreso
 
@@ -1256,9 +1262,9 @@ Crecimiento Ingreso MoM % =
 
 `[ANEXO C: insertar aquí el código fuente completo del módulo PHP de integración con la API de Google Gemini. Debe comprender: (1) el archivo de configuración que lee la credencial desde la variable de entorno; (2) la clase o funciones de acceso al extracto SQLite que calculan los indicadores del corte seleccionado; (3) la función de composición del contexto cuantitativo remitido al modelo; (4) la función de invocación de la API mediante cURL, con el manejo de errores descrito en la sección 8.4.3; (5) la vista que presenta el análisis junto a la tabla de indicadores. IMPORTANTE: verificar antes de insertar que ninguna credencial real figure en el código incluido en el informe.]`
 
-`[FIGURA 18: Captura del archivo de configuración del módulo, mostrando la lectura de la credencial desde la variable de entorno]`
+`[FIGURA 19: Captura del archivo de configuración del módulo, mostrando la lectura de la credencial desde la variable de entorno]`
 
-`[FIGURA 19: Captura de la ejecución en vivo del módulo, con el análisis generado por el modelo para un corte de ruta y período determinado]`
+`[FIGURA 20: Captura de la ejecución en vivo del módulo, con el análisis generado por el modelo para un corte de ruta y período determinado]`
 
 ---
 

@@ -27,10 +27,18 @@ try {
     }
 
     $pregunta = (string) ($_POST['pregunta'] ?? '');
-    $r = responder_pregunta($pregunta);
+
+    // El corte activo en la pagina acota las preguntas consultivas: si el
+    // usuario esta viendo la ruta R-01, "que deberia hacer" se responde sobre
+    // R-01 y no sobre el total.
+    $ruta    = (string) ($_POST['ruta'] ?? 'TODAS');
+    $periodo = (string) ($_POST['periodo'] ?? 'TODOS');
+
+    $r = responder_pregunta($pregunta, $ruta, $periodo);
 
     echo json_encode([
         'ok'        => true,
+        'modo'      => $r['modo'],
         'respuesta' => $r['respuesta'],
         'sql'       => $r['sql'],
         'filas'     => $r['filas'],

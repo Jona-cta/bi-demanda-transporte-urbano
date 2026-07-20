@@ -289,6 +289,13 @@ main { padding: 26px 20px 40px; }
   word-break: break-word;
   margin: 10px 0;
 }
+.nota-modo {
+  margin-top: 14px !important;
+  padding-top: 10px;
+  border-top: 1px solid var(--borde);
+  font-size: .82rem;
+  color: var(--texto-suave);
+}
 .tabla-scroll { overflow-x: auto; }
 .tabla-mini { font-size: .82rem; }
 .tabla-mini th, .tabla-mini td { padding: 5px 9px; }

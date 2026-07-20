@@ -161,8 +161,12 @@ function generar_sql(string $pregunta): string
     $prompt .= "- Incluye siempre LIMIT (maximo " . LIMITE_FILAS . ").\n";
     $prompt .= "- Usa alias legibles en las columnas del resultado.\n";
     $prompt .= "- Si la pregunta compara meses, divide entre dias_con_dato.\n";
-    $prompt .= "- Si la pregunta no puede responderse con este esquema, devuelve "
-             . "exactamente: NO_RESPONDIBLE\n";
+    $prompt .= "- Si la pregunta pide una RECOMENDACION, un diagnostico o una opinion "
+             . "sobre que hacer (por ejemplo: que deberia hacer para mejorar los "
+             . "ingresos, como reduzco la congestion, conviene reforzar esta ruta), "
+             . "no intentes traducirla a SQL: devuelve exactamente CONSULTIVA\n";
+    $prompt .= "- Si la pregunta pide un dato que este esquema no contiene (conductores, "
+             . "unidades, combustible, costos), devuelve exactamente: NO_RESPONDIBLE\n";
 
     $sql = analizar_con_gemini($prompt);
 
@@ -209,11 +213,99 @@ function redactar_respuesta(string $pregunta, string $sql, array $filas): string
 }
 
 /**
+ * Responde una pregunta de tipo consultivo: la que pide una recomendacion o un
+ * diagnostico en lugar de una cifra.
+ *
+ * No se traduce a SQL porque no hay consulta que devuelva un consejo. En su
+ * lugar se le entrega al modelo el mismo contexto cuantitativo que alimenta el
+ * analisis ejecutivo, y se le exige que toda afirmacion se apoye en una cifra.
+ * De ese modo la recomendacion queda anclada a los datos y no a la intuicion
+ * del modelo.
+ */
+function responder_consultiva(string $pregunta, string $ruta, string $periodo): array
+{
+    require_once __DIR__ . '/kpis.php';
+
+    $pdo   = conectar_sqlite();
+    $datos = obtener_kpis($pdo, $ruta, $periodo);
+    $k     = $datos['kpis'];
+
+    $ctx  = "INDICADORES DEL CORTE ANALIZADO";
+    $ctx .= ($ruta === 'TODAS' ? " (todas las rutas)" : " (ruta $ruta)");
+    $ctx .= ($periodo === 'TODOS' ? ", periodo completo feb-2025 a feb-2026" : ", periodo $periodo");
+    $ctx .= "\n";
+    $ctx .= "- Validaciones: " . number_format($k['total_validaciones']) . "\n";
+    $ctx .= "- Ingreso: S/ " . number_format($k['ingreso_total'], 2) . "\n";
+    $ctx .= "- Carreras: " . number_format($k['num_carreras']) . "\n";
+    $ctx .= "- Pasajeros por viaje: " . $k['promedio_pasajeros_viaje'] . "\n";
+    $ctx .= "- Ticket promedio: S/ " . number_format($k['ticket_promedio'], 2) . "\n";
+    $ctx .= "- Demanda en hora punta: " . $k['pct_hora_punta'] . "%\n";
+    $ctx .= "- Dias con registro: " . number_format($k['dias_con_dato']) . "\n\n";
+
+    $ctx .= "DISTRIBUCION POR TIPO DE PASAJE\n";
+    foreach ($datos['tipo_pasaje'] as $tp) {
+        $ctx .= "- {$tp['tipo']}: " . number_format((int) $tp['validaciones'])
+              . " validaciones, S/ " . number_format((float) $tp['ingreso'], 2) . "\n";
+    }
+
+    $ctx .= "\nDEMANDA POR HORA\n";
+    foreach ($datos['por_hora'] as $h) {
+        $ctx .= "- {$h['hora_texto']}: " . number_format((int) $h['validaciones'])
+              . (((int) $h['es_hora_punta'] === 1) ? " [PUNTA]" : "") . "\n";
+    }
+
+    if ($datos['paraderos']) {
+        $ctx .= "\nPARADEROS DE MAYOR DEMANDA\n";
+        foreach ($datos['paraderos'] as $p) {
+            $ctx .= "- {$p['paradero']} ({$p['zona']}): "
+                  . number_format((int) $p['validaciones']) . "\n";
+        }
+    }
+    if ($datos['ranking']) {
+        $ctx .= "\nRANKING DE RUTAS POR INGRESO\n";
+        foreach ($datos['ranking'] as $r) {
+            $ctx .= "- {$r['codigo_ruta']}: S/ " . number_format((float) $r['ingreso'], 2)
+                  . ", " . number_format((int) $r['validaciones']) . " validaciones\n";
+        }
+    }
+
+    $prompt  = "Eres un analista de Inteligencia de Negocios de un operador de "
+             . "transporte publico urbano peruano. La gerencia te consulta.\n\n";
+    $prompt .= "CONSULTA: " . $pregunta . "\n\n";
+    $prompt .= $ctx . "\n";
+    $prompt .= "RESPONDE ASI\n";
+    $prompt .= "- Da una recomendacion concreta y accionable, no generalidades.\n";
+    $prompt .= "- CADA afirmacion debe apoyarse en una cifra de las de arriba. Citala.\n";
+    $prompt .= "- Entre dos y cuatro puntos, cada uno con su justificacion cuantitativa.\n";
+    $prompt .= "- Si los datos disponibles no bastan para sustentar la recomendacion, "
+             . "dilo con claridad y senala que dato haria falta.\n";
+    $prompt .= "- Usa S/ solo para importes de dinero; las validaciones y carreras "
+             . "son conteos.\n";
+    $prompt .= "- No uses guiones largos, solo el guion normal.\n";
+    $prompt .= "- La cobertura de la fuente es parcial (193 de 391 dias, casi todos "
+             . "laborables). No hagas afirmaciones sobre fines de semana ni sobre "
+             . "estacionalidad.\n";
+
+    return [
+        'pregunta'  => $pregunta,
+        'modo'      => 'consultiva',
+        'sql'       => null,
+        'filas'     => [],
+        'n_filas'   => 0,
+        'respuesta' => analizar_con_gemini($prompt),
+    ];
+}
+
+/**
  * Responde una pregunta en lenguaje natural.
  *
- * @return array{pregunta:string, sql:string, filas:array, respuesta:string}
+ * Decide sola el camino: si la pregunta pide un DATO se traduce a SQL; si pide
+ * una RECOMENDACION se responde con el contexto cuantitativo completo.
+ *
+ * @return array{pregunta:string, modo:string, sql:?string, filas:array, respuesta:string}
  */
-function responder_pregunta(string $pregunta): array
+function responder_pregunta(string $pregunta, string $ruta = 'TODAS',
+                            string $periodo = 'TODOS'): array
 {
     $pregunta = trim($pregunta);
     if ($pregunta === '') {
@@ -224,6 +316,10 @@ function responder_pregunta(string $pregunta): array
     }
 
     $sql = generar_sql($pregunta);
+
+    if (stripos($sql, 'CONSULTIVA') !== false) {
+        return responder_consultiva($pregunta, $ruta, $periodo);
+    }
 
     if (stripos($sql, 'NO_RESPONDIBLE') !== false) {
         throw new RuntimeException(
@@ -246,6 +342,7 @@ function responder_pregunta(string $pregunta): array
 
     return [
         'pregunta'  => $pregunta,
+        'modo'      => 'dato',
         'sql'       => $sql,
         'filas'     => array_slice($filas, 0, 20),
         'n_filas'   => count($filas),

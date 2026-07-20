@@ -213,6 +213,7 @@ function h(?string $s): string
       <button type="button" class="chip">En que hora se concentra mas la demanda</button>
       <button type="button" class="chip">Cuanto representa el pasaje gratuito</button>
       <button type="button" class="chip">Que paraderos tienen mas demanda en la Zona Norte</button>
+      <button type="button" class="chip">Que deberia hacer para mejorar los ingresos</button>
     </div>
 
     <div id="respuesta" class="resultado" hidden></div>
@@ -372,6 +373,9 @@ function h(?string $s): string
 
     const datos = new FormData();
     datos.append('pregunta', pregunta);
+    // El corte activo acota las preguntas de recomendacion.
+    datos.append('ruta', document.getElementById('ruta').value);
+    datos.append('periodo', document.getElementById('periodo').value);
 
     try {
       const r = await fetch('api/preguntar.php', { method: 'POST', body: datos });
@@ -379,13 +383,20 @@ function h(?string $s): string
 
       if (j.ok) {
         cajaR.className = 'resultado';
+
+        // Las preguntas de recomendacion no ejecutan SQL: en su lugar se indica
+        // sobre que corte se elaboro la respuesta.
+        const detalle = (j.modo === 'consultiva')
+          ? '<p class="nota-modo">Recomendacion elaborada sobre los indicadores ' +
+            'del corte seleccionado. No ejecuta consulta: interpreta los datos ya calculados.</p>'
+          : '<details class="detalle-sql"><summary>Ver la consulta ejecutada (' +
+            j.n_filas + ' fila' + (j.n_filas === 1 ? '' : 's') + ')</summary>' +
+            '<pre>' + j.sql.replace(/</g, '&lt;') + '</pre>' +
+            tablaHtml(j.filas) + '</details>';
+
         cajaR.innerHTML =
           '<p class="pregunta-eco">' + pregunta.replace(/</g, '&lt;') + '</p>' +
-          render(j.respuesta) +
-          '<details class="detalle-sql"><summary>Ver la consulta ejecutada (' +
-          j.n_filas + ' fila' + (j.n_filas === 1 ? '' : 's') + ')</summary>' +
-          '<pre>' + j.sql.replace(/</g, '&lt;') + '</pre>' +
-          tablaHtml(j.filas) + '</details>' +
+          render(j.respuesta) + detalle +
           '<p class="firma">Generado con ' + j.modelo + '</p>';
         campoP.value = '';
       } else {
