@@ -2,7 +2,7 @@
 /**
  * Cliente de la API de Google Gemini.
  *
- * Toda llamada sale del SERVIDOR. La API Key nunca se envia al navegador.
+ * Todas las llamadas salen del servidor: la API Key nunca llega al navegador.
  */
 
 declare(strict_types=1);
@@ -12,13 +12,10 @@ require_once __DIR__ . '/config.php';
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent';
 
 /**
- * Modelos de reserva.
+ * Modelos de reserva, en orden de preferencia.
  *
  * La capa gratuita no asigna la misma cuota a todos los modelos ni en todos los
- * proyectos: una clave nueva puede recibir "limit: 0" en un modelo concreto y
- * funcionar sin problema en otro. Para que la demostracion no dependa de como
- * quedo aprovisionada una clave en particular, si el modelo configurado no esta
- * disponible se reintenta con estos, en orden.
+ * proyectos: una clave puede recibir "limit: 0" en uno y funcionar en otro.
  */
 const GEMINI_MODELOS_RESERVA = [
     'gemini-flash-latest',
@@ -28,11 +25,9 @@ const GEMINI_MODELOS_RESERVA = [
 ];
 
 /**
- * Convierte el corte de KPIs en el texto que se le manda al modelo.
+ * Convierte el corte de KPIs en el texto que recibe el modelo.
  *
- * Se le entrega el dato YA AGREGADO, no filas crudas: el modelo interpreta,
- * no calcula. Asi las cifras del analisis son siempre las mismas que las del
- * dashboard, y no dependen de que el modelo sume bien.
+ * Se le entrega el dato ya agregado: el modelo interpreta, no calcula.
  */
 function construir_prompt(array $datos): string
 {
@@ -143,6 +138,8 @@ function construir_prompt(array $datos): string
 /**
  * Llama a Gemini y devuelve el texto generado.
  *
+ * Recorre los modelos de reserva si el elegido no responde.
+ *
  * @throws RuntimeException con un mensaje entendible para el usuario final.
  */
 function analizar_con_gemini(string $prompt): string
@@ -154,7 +151,6 @@ function analizar_con_gemini(string $prompt): string
         );
     }
 
-    // El modelo configurado primero; luego los de reserva, sin repetir.
     $candidatos = array_values(array_unique(
         array_merge([GEMINI_MODELO], GEMINI_MODELOS_RESERVA)
     ));
@@ -162,9 +158,7 @@ function analizar_con_gemini(string $prompt): string
     $ultimo_error = null;
 
     foreach ($candidatos as $modelo) {
-        // Hasta dos intentos por modelo antes de pasar al siguiente. Un 503
-        // ("high demand") suele resolverse en segundos, asi que conviene
-        // insistir un poco con el modelo elegido antes de degradar a otro.
+        // Dos intentos por modelo: un 503 suele resolverse en segundos.
         for ($intento = 1; $intento <= 2; $intento++) {
             try {
                 $texto = llamar_modelo($modelo, $prompt);
@@ -173,14 +167,12 @@ function analizar_con_gemini(string $prompt): string
             } catch (ModeloNoDisponible $e) {
                 $ultimo_error = $e->getMessage();
                 if ($e->reintentable && $intento === 1) {
-                    sleep(2);      // saturacion pasajera: se reintenta igual
+                    sleep(2);
                     continue;
                 }
-                break;             // sin cuota o inexistente: cambiar de modelo
+                break;
             }
         }
-        // Cualquier otro error (clave invalida, sin red) se propaga tal cual:
-        // reintentar con otro modelo no lo resolveria.
     }
 
     throw new RuntimeException(
@@ -196,13 +188,10 @@ function gemini_modelo_usado(): string
 }
 
 /**
- * El modelo no atendio la peticion: conviene reintentar o probar con otro.
+ * El modelo no atendio la peticion.
  *
- * $reintentable distingue las dos causas:
- *   true  -> saturacion pasajera del servicio (503, 500). Vale la pena
- *            reintentar con el mismo modelo tras una breve espera.
- *   false -> el modelo no existe (404) o no tiene cuota asignada (429).
- *            Insistir no sirve: hay que cambiar de modelo.
+ * $reintentable distingue la saturacion pasajera (conviene reintentar) de la
+ * falta de cuota o de existencia del modelo (hay que cambiar de modelo).
  */
 class ModeloNoDisponible extends RuntimeException
 {
@@ -218,7 +207,7 @@ class ModeloNoDisponible extends RuntimeException
 /**
  * Ejecuta la llamada contra un modelo concreto.
  *
- * @throws ModeloNoDisponible si el modelo no existe o no tiene cuota asignada.
+ * @throws ModeloNoDisponible si conviene reintentar o cambiar de modelo.
  * @throws RuntimeException   para errores que no se arreglan cambiando de modelo.
  */
 function llamar_modelo(string $modelo, string $prompt): string
@@ -230,26 +219,14 @@ function llamar_modelo(string $modelo, string $prompt): string
             'parts' => [['text' => $prompt]],
         ]],
         'generationConfig' => [
-            // Temperatura baja: es un analisis cuantitativo, no un ejercicio creativo.
-            'temperature'     => 0.3,
-            // Holgado a proposito. Los modelos flash actuales razonan antes de
-            // responder y esos tokens de razonamiento se descuentan del mismo
-            // limite: con 2048 la respuesta se cortaba a media frase. No se
-            // desactiva el razonamiento con thinkingConfig porque los modelos
-            // mas antiguos de la lista de reserva no aceptan ese campo y
-            // rechazarian la peticion.
+            'temperature' => 0.3,
+            // Holgado: los modelos flash razonan antes de responder y esos
+            // tokens se descuentan del mismo limite.
             'maxOutputTokens' => 8192,
         ],
     ], JSON_UNESCAPED_UNICODE);
 
-    // Certificados raiz: el PHP portatil no hereda el almacen de Windows, asi
-    // que sin esto la conexion falla con "unable to get local issuer
-    // certificate". La ruta se calcula aqui, en absoluto, porque php.ini solo
-    // admite rutas relativas al directorio de trabajo y el proyecto tiene que
-    // funcionar desde cualquier carpeta.
-    // Nunca se desactiva la verificacion: hacerlo dejaria la API Key expuesta
-    // a un intermediario que interceptara la conexion.
-    // __DIR__ es ia/lib; dos niveles arriba es la raiz del proyecto.
+    // El PHP portatil no hereda el almacen de certificados de Windows.
     $cacert = dirname(__DIR__, 2) . '/php/cacert.pem';
 
     $ch = curl_init($url);
@@ -262,13 +239,9 @@ function llamar_modelo(string $modelo, string $prompt): string
         CURLOPT_POSTFIELDS     => $cuerpo,
         CURLOPT_HTTPHEADER     => [
             'Content-Type: application/json',
-            // La clave va en cabecera, no en la URL: asi no queda registrada en
-            // logs de servidor ni en el historial de proxys.
+            // En cabecera y no en la URL: no queda en logs ni en proxys.
             'x-goog-api-key: ' . GEMINI_API_KEY,
         ],
-        // 90 s: los modelos con razonamiento pueden tardar bastante cuando el
-        // servicio esta cargado. Con 60 s se cortaban respuestas que si iban a
-        // llegar.
         CURLOPT_TIMEOUT        => 90,
         CURLOPT_CONNECTTIMEOUT => 15,
     ]);
@@ -280,9 +253,6 @@ function llamar_modelo(string $modelo, string $prompt): string
     curl_close($ch);
 
     if ($respuesta === false) {
-        // Si se agoto el tiempo, insistir con el MISMO modelo no ayuda: lo mas
-        // probable es que vuelva a tardar igual. Se pasa al siguiente, que
-        // incluye variantes "lite" bastante mas rapidas.
         if ($errno === CURLE_OPERATION_TIMEDOUT) {
             throw new ModeloNoDisponible(
                 "[$modelo] La respuesta tardo mas de 90 segundos.", false);
@@ -295,21 +265,16 @@ function llamar_modelo(string $modelo, string $prompt): string
     if ($http !== 200) {
         $detalle = $json['error']['message'] ?? substr((string) $respuesta, 0, 300);
 
-        // Clave invalida: cambiar de modelo no ayuda, se corta aqui.
         if (($http === 400 || $http === 403) && stripos($detalle, 'api key') !== false) {
             throw new RuntimeException('La API Key no es valida. Revisa GEMINI_API_KEY en el archivo .env');
         }
 
-        // 503 y 500: el servicio esta saturado ("high demand") o fallo de forma
-        // pasajera. Se reintenta con el mismo modelo antes de degradar a otro.
+        // Servicio saturado: se reintenta con el mismo modelo.
         if (in_array($http, [500, 502, 503, 504], true)) {
             throw new ModeloNoDisponible("[$modelo] $detalle", true);
         }
 
-        // 404: el modelo no existe para esta version de la API.
-        // 429: la capa gratuita no le asigno cuota a este modelo en este
-        //      proyecto (aparece como "limit: 0"). En ambos casos insistir con
-        //      el mismo modelo no sirve: se pasa al siguiente.
+        // Modelo inexistente (404) o sin cuota asignada (429): se cambia de modelo.
         if ($http === 404 || $http === 429) {
             throw new ModeloNoDisponible("[$modelo] $detalle", false);
         }

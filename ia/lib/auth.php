@@ -2,17 +2,8 @@
 /**
  * Autenticacion del modulo.
  *
- * Decisiones de diseno, por si hay que sustentarlas:
- *
- * 1. La contrasena NO se guarda. Se guarda su hash (password_hash con bcrypt)
- *    en el archivo .env, que no se versiona. Aunque alguien lea el repositorio
- *    o el archivo de configuracion, no obtiene la contrasena.
- * 2. La comparacion se hace con password_verify, que ademas es resistente a
- *    ataques de temporizacion.
- * 3. Al iniciar sesion se regenera el identificador de sesion, para evitar
- *    fijacion de sesion (session fixation).
- * 4. Hay un retardo tras cada intento fallido, que encarece la prueba masiva de
- *    contrasenas sin molestar al usuario legitimo.
+ * La contrasena no se almacena: se guarda su hash bcrypt en el .env y se
+ * verifica con password_verify.
  */
 
 declare(strict_types=1);
@@ -25,7 +16,7 @@ function iniciar_sesion_segura(): void
         return;
     }
     session_set_cookie_params([
-        'httponly' => true,   // la cookie no es accesible desde JavaScript
+        'httponly' => true,   // no accesible desde JavaScript
         'samesite' => 'Lax',  // no viaja en peticiones de terceros
     ]);
     session_start();
@@ -42,25 +33,20 @@ function esta_autenticado(): bool
     return usuario_actual() !== null;
 }
 
-/**
- * Valida las credenciales contra las definidas en el .env.
- * Devuelve true si son correctas y deja la sesion iniciada.
- */
+/** Valida las credenciales y deja la sesion iniciada si son correctas. */
 function intentar_login(string $usuario, string $clave): bool
 {
     iniciar_sesion_segura();
 
-    $usuario_ok = APP_USUARIO;
-    $hash_ok    = APP_PASSWORD_HASH;
-
     // hash_equals compara en tiempo constante: no revela por temporizacion
-    // si el nombre de usuario existe.
-    $usuario_valido = hash_equals($usuario_ok, $usuario);
-    $clave_valida   = $hash_ok !== '' && password_verify($clave, $hash_ok);
+    // si el usuario existe.
+    $usuario_valido = hash_equals(APP_USUARIO, $usuario);
+    $clave_valida   = APP_PASSWORD_HASH !== ''
+                      && password_verify($clave, APP_PASSWORD_HASH);
 
     if ($usuario_valido && $clave_valida) {
-        session_regenerate_id(true);       // evita fijacion de sesion
-        $_SESSION['usuario'] = $usuario_ok;
+        session_regenerate_id(true);   // evita fijacion de sesion
+        $_SESSION['usuario'] = APP_USUARIO;
         $_SESSION['inicio']  = time();
         return true;
     }
@@ -83,8 +69,10 @@ function cerrar_sesion(): void
 }
 
 /**
- * Exige sesion iniciada. Si no la hay, redirige al login (paginas) o
- * devuelve 401 en JSON (peticiones de la API).
+ * Exige sesion iniciada.
+ *
+ * Redirige al login en las paginas; devuelve 401 en JSON para las peticiones
+ * de la API.
  */
 function exigir_sesion(bool $es_api = false): void
 {

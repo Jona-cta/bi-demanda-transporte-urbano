@@ -2,11 +2,11 @@
 /**
  * Modulo de Analisis Inteligente - Proyecto Final Inteligencia de Negocios (UTP)
  *
- * Interfaz del modulo de IA: muestra los KPIs del corte elegido y permite pedir
- * un analisis ejecutivo generado por Google Gemini.
+ * Muestra los KPIs del corte elegido y permite pedir un analisis ejecutivo o
+ * una consulta en lenguaje natural.
  *
- * Los KPIs se calculan en el servidor a partir del extracto del Data Mart, no
- * los produce el modelo: la IA interpreta cifras ya calculadas.
+ * Los KPIs se calculan en el servidor: el modelo interpreta cifras ya
+ * calculadas, no las produce.
  */
 
 declare(strict_types=1);
@@ -271,8 +271,7 @@ function h(?string $s): string
   }
 
   boton.addEventListener('click', async function () {
-    // Candado del boton: se bloquea al instante para que un doble clic no
-    // dispare dos llamadas a la API (que ademas consumen cuota).
+    // Candado del boton: evita que un doble clic dispare dos llamadas.
     boton.disabled = true;
     const textoOriginal = boton.textContent;
     boton.textContent = 'Analizando...';
@@ -280,8 +279,7 @@ function h(?string $s): string
     resultado.hidden = false;
     resultado.className = 'resultado cargando';
 
-    // Contador visible: la llamada puede tardar mas de un minuto cuando el
-    // servicio esta cargado, y sin senal de avance la pagina parece colgada.
+    // Contador visible: sin senal de avance la pagina parece colgada.
     let segundos = 0;
     resultado.innerHTML = '<p>Consultando el modelo... <strong>0 s</strong></p>';
     const reloj = setInterval(function () {
@@ -356,8 +354,7 @@ function h(?string $s): string
     const pregunta = campoP.value.trim();
     if (!pregunta) return;
 
-    // Mismo candado que en el analisis: dos llamadas al modelo por pregunta,
-    // un doble clic gastaria cuota por partida doble.
+    // Cada pregunta implica dos llamadas al modelo: se bloquea el boton.
     btnP.disabled = true;
     const textoBtn = btnP.textContent;
     btnP.textContent = 'Consultando...';

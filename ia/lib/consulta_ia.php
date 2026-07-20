@@ -2,26 +2,9 @@
 /**
  * Consulta en lenguaje natural sobre el Data Mart (texto a SQL).
  *
- * Flujo:
- *   1. Se le entrega al modelo el esquema del extracto y la pregunta.
- *   2. El modelo devuelve UNA consulta SELECT.
- *   3. La consulta se VALIDA antes de ejecutarse (ver validar_sql).
- *   4. Se ejecuta sobre una conexion de solo lectura.
- *   5. El resultado vuelve al modelo, que redacta la respuesta.
- *
- * Por que la validacion no es opcional
- * ------------------------------------
- * El SQL que llega aqui lo escribio un modelo de lenguaje a partir de un texto
- * que tecleo el usuario. Es, por definicion, codigo de origen no confiable.
- * Ejecutarlo sin filtrar permitiria que una pregunta manipulada terminara
- * borrando o alterando datos. Por eso se aplican tres barreras independientes:
- *
- *   a) La conexion se abre en modo SOLO LECTURA a nivel de driver.
- *   b) Solo se admite una sentencia, y debe empezar por SELECT o WITH.
- *   c) Se rechaza cualquier palabra clave de escritura o de administracion.
- *
- * Cualquiera de las tres bastaria; estan las tres porque una defensa en capas
- * no depende de que ninguna sea perfecta.
+ * El modelo traduce la pregunta a SQL, la consulta se valida, se ejecuta en
+ * modo de solo lectura y el resultado vuelve al modelo para que redacte la
+ * respuesta.
  */
 
 declare(strict_types=1);
@@ -29,14 +12,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/gemini.php';
 
-/** Filas maximas que se devuelven al modelo, para no desbordar el contexto. */
+/** Filas maximas devueltas al modelo. */
 const LIMITE_FILAS = 200;
 
-/**
- * Descripcion del esquema que se le entrega al modelo.
- * Se mantiene aqui, y no se genera dinamicamente, para poder anotar cada tabla
- * con el significado de negocio que el modelo necesita para elegir bien.
- */
+/** Esquema del extracto, anotado con el significado de negocio de cada tabla. */
 function esquema_para_modelo(): string
 {
     return <<<'ESQUEMA'
@@ -89,28 +68,21 @@ ESQUEMA;
  */
 function validar_sql(string $sql): string
 {
-    $sql = trim($sql);
-
-    // Se retira el punto y coma final, si lo hay.
-    $sql = rtrim($sql, "; \t\n\r");
+    $sql = rtrim(trim($sql), "; \t\n\r");
 
     if ($sql === '') {
         throw new RuntimeException('El modelo no devolvio ninguna consulta.');
     }
 
-    // Una sola sentencia: un punto y coma en el medio indicaria dos.
+    // Un punto y coma intermedio indicaria mas de una sentencia.
     if (str_contains($sql, ';')) {
-        throw new RuntimeException(
-            'Solo se admite una consulta por pregunta.');
+        throw new RuntimeException('Solo se admite una consulta por pregunta.');
     }
 
-    // Debe ser una lectura.
     if (!preg_match('/^\s*(SELECT|WITH)\b/i', $sql)) {
-        throw new RuntimeException(
-            'Solo se permiten consultas de lectura (SELECT).');
+        throw new RuntimeException('Solo se permiten consultas de lectura (SELECT).');
     }
 
-    // Palabras clave que no tienen cabida en una consulta de lectura.
     $prohibidas = [
         'INSERT', 'UPDATE', 'DELETE', 'DROP', 'CREATE', 'ALTER', 'REPLACE',
         'TRUNCATE', 'ATTACH', 'DETACH', 'PRAGMA', 'VACUUM', 'REINDEX',
@@ -123,7 +95,7 @@ function validar_sql(string $sql): string
         }
     }
 
-    // Techo de filas, por si el modelo lo omitio.
+    // Techo de filas por si el modelo omitio el LIMIT.
     if (!preg_match('/\bLIMIT\s+\d+/i', $sql)) {
         $sql .= ' LIMIT ' . LIMITE_FILAS;
     }
@@ -131,14 +103,12 @@ function validar_sql(string $sql): string
     return $sql;
 }
 
-/** Conexion de SOLO LECTURA al extracto. */
+/** Abre el extracto en modo de solo lectura. */
 function conectar_solo_lectura(): PDO
 {
     if (!is_readable(RUTA_SQLITE)) {
         throw new RuntimeException('No se encuentra el extracto de datos.');
     }
-    // El modo ro se declara en el propio DSN: aunque una consulta lograra
-    // burlar la validacion, el driver rechazaria cualquier escritura.
     $pdo = new PDO('sqlite:' . RUTA_SQLITE, null, null, [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -170,10 +140,8 @@ function generar_sql(string $pregunta): string
 
     $sql = analizar_con_gemini($prompt);
 
-    // El modelo suele envolver el SQL en un bloque de codigo pese a la instruccion.
-    $sql = preg_replace('/^```(?:sql)?\s*|\s*```$/im', '', trim($sql));
-
-    return trim($sql);
+    // El modelo suele envolver el SQL en un bloque de codigo markdown.
+    return trim(preg_replace('/^```(?:sql)?\s*|\s*```$/im', '', trim($sql)));
 }
 
 /** Pide al modelo que redacte la respuesta a partir de los datos obtenidos. */
@@ -190,16 +158,13 @@ function redactar_respuesta(string $pregunta, string $sql, array $filas): string
     } else {
         $prompt .= implode(" | ", array_keys($filas[0])) . "\n";
         foreach (array_slice($filas, 0, 60) as $f) {
-            $prompt .= implode(" | ", array_map(
-                fn($v) => is_numeric($v) ? (string) $v : (string) $v, $f)) . "\n";
+            $prompt .= implode(" | ", array_map('strval', $f)) . "\n";
         }
     }
 
     $prompt .= "\nREDACTA LA RESPUESTA\n";
     $prompt .= "- Responde la pregunta de forma directa, en dos a cinco frases.\n";
     $prompt .= "- Cita SIEMPRE las cifras del resultado. No inventes ninguna.\n";
-    // El modelo tiende a poner el simbolo de moneda a cualquier cifra grande,
-    // incluidos los conteos. Se distingue explicitamente.
     $prompt .= "- Usa el simbolo S/ SOLO para importes de dinero (ingreso, "
              . "recaudacion, ticket promedio). Las validaciones, pasajeros, "
              . "carreras y dias son CONTEOS: van con separador de miles y sin "
@@ -213,14 +178,10 @@ function redactar_respuesta(string $pregunta, string $sql, array $filas): string
 }
 
 /**
- * Responde una pregunta de tipo consultivo: la que pide una recomendacion o un
- * diagnostico en lugar de una cifra.
+ * Responde una pregunta que pide un criterio en lugar de una cifra.
  *
- * No se traduce a SQL porque no hay consulta que devuelva un consejo. En su
- * lugar se le entrega al modelo el mismo contexto cuantitativo que alimenta el
- * analisis ejecutivo, y se le exige que toda afirmacion se apoye en una cifra.
- * De ese modo la recomendacion queda anclada a los datos y no a la intuicion
- * del modelo.
+ * Se le entrega al modelo el contexto cuantitativo del corte activo y se le
+ * exige que cada afirmacion cite una cifra.
  */
 function responder_consultiva(string $pregunta, string $ruta, string $periodo): array
 {
@@ -299,10 +260,8 @@ function responder_consultiva(string $pregunta, string $ruta, string $periodo): 
 /**
  * Responde una pregunta en lenguaje natural.
  *
- * Decide sola el camino: si la pregunta pide un DATO se traduce a SQL; si pide
- * una RECOMENDACION se responde con el contexto cuantitativo completo.
- *
- * @return array{pregunta:string, modo:string, sql:?string, filas:array, respuesta:string}
+ * Si pide un dato, se traduce a SQL; si pide un criterio, se responde con el
+ * contexto cuantitativo del corte.
  */
 function responder_pregunta(string $pregunta, string $ruta = 'TODAS',
                             string $periodo = 'TODOS'): array

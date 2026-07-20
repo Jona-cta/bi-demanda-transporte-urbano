@@ -1,20 +1,13 @@
 <?php
 /**
- * Configuracion del modulo de IA.
+ * Configuracion del modulo.
  *
- * La API Key se lee de un archivo .env que NO se versiona. Nunca se expone al
- * navegador: todas las llamadas a Gemini salen desde el servidor (analizar.php).
- * Si la clave viviera en el JavaScript del cliente, cualquiera podria leerla
- * desde el inspector del navegador.
+ * Las credenciales se leen de un archivo .env que no se versiona.
  */
 
 declare(strict_types=1);
 
-/**
- * Lector minimo de .env (formato CLAVE=valor, # para comentarios).
- * No se usa una libreria externa a proposito: el proyecto debe correr en
- * cualquier maquina con solo descomprimir, sin composer ni dependencias.
- */
+/** Lector minimo de .env (CLAVE=valor, # para comentarios). */
 function cargar_env(string $ruta): array
 {
     if (!is_readable($ruta)) {
@@ -43,28 +36,25 @@ function cargar_env(string $ruta): array
     return $vars;
 }
 
-$RAIZ = dirname(__DIR__, 2);              // carpeta raiz del proyecto
+$RAIZ = dirname(__DIR__, 2);
 $ENV  = cargar_env($RAIZ . '/.env');
 
-/** Clave de la API de Google Gemini. Prioridad: .env, luego variable de entorno. */
+/** Clave de la API de Google Gemini. */
 define('GEMINI_API_KEY', $ENV['GEMINI_API_KEY'] ?? (getenv('GEMINI_API_KEY') ?: ''));
 
-/** Modelo a usar. Configurable por si el docente prefiere otro. */
-define('GEMINI_MODELO', $ENV['GEMINI_MODELO'] ?? 'gemini-2.0-flash');
+/** Modelo a usar. */
+define('GEMINI_MODELO', $ENV['GEMINI_MODELO'] ?? 'gemini-flash-latest');
 
-/** Extracto del Data Mart (SQLite). Viaja con el proyecto. */
+/** Extracto del Data Mart. Viaja con el proyecto. */
 define('RUTA_SQLITE', $RAIZ . '/data/kpi_datamart.sqlite');
 
-/** Nombre anonimizado de la organizacion, para los textos de la interfaz. */
+/** Nombre anonimizado de la organizacion. */
 define('NOMBRE_ORGANIZACION', 'Operador de Corredor Complementario');
 
-// --- Acceso al modulo ------------------------------------------------------
-// La contrasena no se almacena: solo su hash bcrypt, generado con
-// password_hash(). Ni el repositorio ni este archivo contienen la clave.
+/** Acceso al modulo. Se almacena el hash bcrypt, nunca la contrasena. */
 define('APP_USUARIO',       $ENV['APP_USUARIO'] ?? 'gerente');
 define('APP_PASSWORD_HASH', $ENV['APP_PASSWORD_HASH'] ?? '');
 
-/** Credenciales de demostracion que se muestran en la pantalla de acceso.
- *  Se declaran en el .env para poder ocultarlas en un despliegue real. */
+/** Credenciales de demostracion mostradas en la pantalla de acceso. */
 define('MOSTRAR_CREDENCIALES_DEMO', ($ENV['MOSTRAR_CREDENCIALES_DEMO'] ?? '1') === '1');
 define('CLAVE_DEMO',                $ENV['CLAVE_DEMO'] ?? '');

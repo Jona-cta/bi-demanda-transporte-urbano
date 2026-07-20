@@ -1,29 +1,24 @@
 <?php
 /**
- * Endpoint del analisis con IA.
+ * Endpoint del analisis ejecutivo.
  *
- * Recibe ruta y periodo, consulta el extracto del Data Mart, arma el contexto
- * cuantitativo y se lo entrega a Gemini para que lo interprete.
- *
- * Devuelve siempre JSON, tambien en los errores, para que la interfaz pueda
- * mostrar un mensaje entendible en vez de una pagina de error de PHP.
+ * Consulta el extracto, arma el contexto cuantitativo y lo entrega a Gemini.
+ * Devuelve siempre JSON, tambien en los errores.
  */
 
 declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 
-// El modulo puede recorrer varios modelos antes de obtener respuesta, y cada
-// llamada admite hasta 90 s. Sin este margen PHP cortaria la peticion antes de
-// que la cadena de respaldo termine de intentarlo.
+// La cadena de modelos de reserva puede encadenar varias llamadas.
 set_time_limit(420);
 
 require_once __DIR__ . '/../lib/kpis.php';
 require_once __DIR__ . '/../lib/gemini.php';
 require_once __DIR__ . '/../lib/auth.php';
 
-// El endpoint tambien se protege, no solo la pagina: de lo contrario se podria
-// consumir la API (y la cuota de la clave) llamandolo directamente.
+// Se protege el endpoint, no solo la pagina: de lo contrario podria
+// invocarse directamente y consumir la cuota de la clave.
 exigir_sesion(true);
 
 try {
@@ -38,7 +33,6 @@ try {
     $pdo = conectar_sqlite();
 
     // Validacion en servidor: no se confia en el desplegable del navegador.
-    // Se comprueba que los valores existan realmente en el extracto.
     $rutas_validas = array_column(listar_rutas($pdo), 'codigo_ruta');
     $rutas_validas[] = 'TODAS';
     if (!in_array($ruta, $rutas_validas, true)) {
@@ -62,8 +56,7 @@ try {
         ], JSON_UNESCAPED_UNICODE));
     }
 
-    $prompt   = construir_prompt($datos);
-    $analisis = analizar_con_gemini($prompt);
+    $analisis = analizar_con_gemini(construir_prompt($datos));
 
     echo json_encode([
         'ok'       => true,
